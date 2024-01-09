@@ -32,7 +32,7 @@ controls.target.set(targetCenter, 0, targetCenter);
 controls.maxPolarAngle = 1;
 
 camera.position.x = targetCenter;
-camera.position.y = 6;
+camera.position.y = 5.3;
 camera.position.z = 12;
 camera.lookAt(targetCenter, 0, targetCenter)
 

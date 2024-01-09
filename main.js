@@ -1,9 +1,11 @@
 import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 const scene = new THREE.Scene();
+
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-const renderer = new THREE.WebGLRenderer();
+const renderer = new THREE.WebGLRenderer({antialias: true});
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
@@ -30,23 +32,14 @@ for (let x = 0; x < dimension; x++) {
 
 
 
-
-
-
-
 const pawnGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
 const pawnMaterial = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
 const pawn = new THREE.Mesh(pawnGeometry, pawnMaterial);
 scene.add(pawn);
 
-camera.position.x = 3.5;
-camera.position.y = 6;
-camera.position.z = 12;
-camera.rotateX(-0.5);
+
 
 const pawnOffsetY = 0.25; 
-
-
 
 // Ajout des fonctionnalités du pion et du onclick
 const raycaster = new THREE.Raycaster();
@@ -78,6 +71,20 @@ function onClick(event) {
         pawn.position.y = pawnOffsetY;
     }
 }
+
+
+
+const controls = new OrbitControls( camera, renderer.domElement );
+let targetCenter = (dimension) / 2 + 0.25;
+controls.rotateSpeed = 0.5;
+controls.target.set(targetCenter, 0, targetCenter);
+controls.maxPolarAngle = 1;
+
+camera.position.x = targetCenter;
+camera.position.y = 5.3;
+camera.position.z = 12;
+camera.lookAt(targetCenter, 0, targetCenter)
+
 
 function animate() {
     requestAnimationFrame(animate);

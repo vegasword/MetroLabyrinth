@@ -7,30 +7,81 @@ const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// Grid creation
 const dimension = 7;
 const offset = 1.25;
-const tileMaterial = new THREE.MeshBasicMaterial({ 
-    color: 0x00ff00, 
+const tileMaterial = new THREE.MeshBasicMaterial({
+    color: 0x00ff00,
     wireframe: true
 });
+
+
+
+const tiles = [];
 
 for (let x = 0; x < dimension; x++) {
     for (let y = 0; y < dimension; y++) {
         let tileGeometry = new THREE.BoxGeometry(1, 0.1, 1);
         tileGeometry.translate(x * offset, 0, y * offset);
-        scene.add(new THREE.Mesh(tileGeometry, tileMaterial));
+        const tileMesh = new THREE.Mesh(tileGeometry, tileMaterial);
+        scene.add(tileMesh);
+        tiles.push(tileMesh);
     }
 }
+
+
+
+
+
+
+
+const pawnGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+const pawnMaterial = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
+const pawn = new THREE.Mesh(pawnGeometry, pawnMaterial);
+scene.add(pawn);
 
 camera.position.x = 3.5;
 camera.position.y = 6;
 camera.position.z = 12;
 camera.rotateX(-0.5);
 
+const pawnOffsetY = 0.25; 
+
+
+
+// Ajout des fonctionnalités du pion et du onclick
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+document.addEventListener('click', onClick);
+
+function onClick(event) {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+
+    const intersects = raycaster.intersectObjects(scene.children);
+
+    if (intersects.length > 0) {
+        const intersectionPoint = intersects[0].point;
+
+
+        const minX = 0;
+        const maxX = (dimension - 1) * offset;
+        const minZ = 0;
+        const maxZ = (dimension - 1) * offset;
+
+        pawn.position.x = Math.max(minX, Math.min(maxX, intersectionPoint.x));
+        pawn.position.z = Math.max(minZ, Math.min(maxZ, intersectionPoint.z));
+
+
+        pawn.position.y = pawnOffsetY;
+    }
+}
+
 function animate() {
     requestAnimationFrame(animate);
-
     renderer.render(scene, camera);
 }
+
 animate();

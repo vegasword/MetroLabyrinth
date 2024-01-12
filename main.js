@@ -1,140 +1,145 @@
 import * as THREE from "three";
 
+import {
+  OrbitCamera,
+  Labyrinth,
+  GamePhase,
+  LaneAxis,
+  Direction
+} from "./gameObjects.js";
+
 const scene = new THREE.Scene();
-const aspect = window.innerWidth / window.innerHeight;
-const camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({antialias: true});
+const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-window.addEventListener("resize", onWindowResize, false)
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight
-    camera.updateProjectionMatrix()
-    renderer.setSize(window.innerWidth, window.innerHeight)
-    renderer.render(scene, camera);
-}
+let labyrinth = new Labyrinth(scene, 7, 1.25);
 
-class Tile {
-    constructor(x, y, z) {
-        this.geometry = new THREE.BoxGeometry(1, 0.1, 1);
-        this.material = new THREE.MeshBasicMaterial({color: 0xffffff});
-        this.mesh = new THREE.Mesh(this.geometry, this.material);
-        this.geometry.translate(x, y, z);
-    }
+const target = (labyrinth.dimension - 1) / 2 * labyrinth.tileOffset;
+const aspect = window.innerWidth / window.innerHeight;
+let camera = new OrbitCamera(target, aspect, labyrinth, renderer);
 
-    move(x, y) { this.geometry.translate(x, 0, y); }
-}
-
-class Labyrinth {
-    constructor(scene, camera, dimension, tileOffset) {
-        if (dimension % 2 == 0) {
-            alert("The dimension should be odd !");
-            return; 
-        }
-                
-        this.choosingLane = true;
-        this.curX = 1;
-        this.curY = 1;
-        
-        this.dimension = dimension;
-        this.tileOffset = tileOffset;
-        var hDimension = Math.floor(dimension / 2);
-        this.tileOut = new Tile(hDimension * tileOffset, 0, dimension * tileOffset);
-        this.tiles = [[]];
-        
-        camera.position.x = this.dimension / 2;
-        camera.position.y = this.dimension;
-        camera.position.z = this.dimension * this.tileOffset + 1;
-        camera.rotateX(-1);
-        
-        // Build the labyrinth
-        for (let x = 0; x < dimension; x++) {
-            this.tiles.push([]);
-            for (let y = 0; y < dimension; y++) {
-                this.tiles[x].push(new Tile(x * tileOffset, 0, y * tileOffset));
-                scene.add(this.tiles[x][y].mesh);
-            }
-        }
-        scene.add(this.tileOut.mesh);
-        
-        // Default lane selection color
-        for (let x = 0; x < this.dimension; ++x)
-            this.tiles[x][this.curY].material.color.setHex(0x00ff00);
-    }
-    
-    clearTilesColor() {
-        for (let x = 0; x < this.dimension; ++x)
-            for (let y = 0; y < this.dimension; ++y)
-                this.tiles[x][y].material.color.setHex(0xffffff);
-    }
-
-    selectHorizontalLane() {
-        for (let x = 0; x < this.dimension; ++x)
-            this.tiles[x][this.curY].material.color.setHex(0x00ff00);
-    }
-    
-    selectVerticalLane() {
-        for (let y = 0; y < this.dimension; ++y)
-            this.tiles[this.curX][y].material.color.setHex(0x00ff00); 
-    }
-    
-    getXY(index) {
-        for (let x=0; x < dimension; x++)
-            for (let y=0; y < dimension; y++)
-                if (x * dimension + y === index)
-                    return {x: x, y: y};
-    }
-}
-
-let labyrinth = new Labyrinth(scene, camera, 7, 1.25);
-
-document.addEventListener("keydown", function(event) {
-    if (labyrinth.choosingLane) {
-        switch (event.key) {
-            case "ArrowUp":
-                if (labyrinth.curY - 2 > 0)
-                    labyrinth.curY -= 2;
-                labyrinth.clearTilesColor();
-                labyrinth.selectHorizontalLane();
-                break;
-            
-            case "ArrowDown":
-                if (labyrinth.curY + 2 < labyrinth.dimension)
-                    labyrinth.curY += 2;
-                labyrinth.clearTilesColor();
-                labyrinth.selectHorizontalLane();
-                break;
-            
-            case "ArrowLeft":
-                if (labyrinth.curX - 2 > 0) labyrinth.curX -= 2;
-                labyrinth.clearTilesColor();
-                labyrinth.selectVerticalLane();
-                break;
-            
-            case "ArrowRight":
-                if (labyrinth.curX + 2 < labyrinth.dimension) 
-                    labyrinth.curX += 2;
-                labyrinth.clearTilesColor();
-                labyrinth.selectVerticalLane();
-                break;
-            case "Enter":
-                labyrinth.choosingLane = false;
-                for (let x = 0; x < labyrinth.dimension; ++x)
-                    for (let y = 0; y < labyrinth.dimension; ++y)
-                        if (labyrinth.tiles[x][y].material.color.getHex() == 0x00ff00)
-                            labyrinth.tiles[x][y].material.color.setHex(0xffff00);
-                break;
-        };
-    }
-    else {
-        
-    }
+window.addEventListener("resize", function() {
+  camera.perspective.aspect = window.innerWidth / window.innerHeight
+  camera.perspective.updateProjectionMatrix()
+  renderer.setSize(window.innerWidth, window.innerHeight)
+  renderer.render(scene, camera.perspective);
 });
 
-function animate() {
-    requestAnimationFrame(animate);
-    renderer.render(scene, camera);
+labyrinth.selectLane(LaneAxis.HORIZONTAL);
+labyrinth.fillSelectedLane(0x00ff00);
+document.addEventListener("keydown", function(event) {
+  switch (labyrinth.gamePhase) {
+    case GamePhase.SELECT_LANE: {
+      switch (event.key) {
+        case "ArrowUp": {
+          if (labyrinth.selectedLaneY == -1) {
+            labyrinth.selectedLaneY  = 1;
+          }
+          else if (labyrinth.selectedLaneY - 2 > 0) {
+            labyrinth.selectedLaneY -= 2;
+          }
+          labyrinth.selectLane(LaneAxis.HORIZONTAL);
+          labyrinth.fillSelectedLane(0x00ff00);
+        } break;
+
+        case "ArrowDown": {
+          if (labyrinth.selectedLaneY + 2 < labyrinth.dimension)
+            labyrinth.selectedLaneY += 2;
+          labyrinth.selectLane(LaneAxis.HORIZONTAL);
+          labyrinth.fillSelectedLane(0x00ff00);
+        } break;
+
+        case "ArrowLeft": {
+          if (labyrinth.selectedLaneX == -1) {
+            labyrinth.selectedLaneX  = 1;
+          }
+          else if (labyrinth.selectedLaneX - 2 > 0) {
+            labyrinth.selectedLaneX -= 2;
+          }
+          labyrinth.selectLane(LaneAxis.VERTICAL);
+          labyrinth.fillSelectedLane(0x00ff00);
+        } break;
+
+        case "ArrowRight": {
+          if (labyrinth.selectedLaneX + 2 < labyrinth.dimension)
+            labyrinth.selectedLaneX += 2;
+          labyrinth.selectLane(LaneAxis.VERTICAL);
+          labyrinth.fillSelectedLane(0x00ff00);
+        } break;
+
+        case "Enter": {
+          labyrinth.gamePhase = GamePhase.MOVE_LANE;
+          labyrinth.fillSelectedLane(0xffcc00);
+        } break;
+      }
+    } break;
+
+    case GamePhase.MOVE_LANE: {
+      switch (event.key) {
+        case "Escape": {
+          labyrinth.gamePhase = GamePhase.SELECT_LANE;
+          labyrinth.fillSelectedLane(0x00ff00);
+        } break;
+
+        case "ArrowLeft": {
+          if (labyrinth.selectionAxis == LaneAxis.HORIZONTAL) {
+            labyrinth.laneMoveDirection = Direction.LEFT;
+            labyrinth.getTileOut().move(-1, labyrinth.selectedLaneY, labyrinth.tileOffset);
+          }
+        } break;
+
+        case "ArrowRight": {
+          if (labyrinth.selectionAxis == LaneAxis.HORIZONTAL) {
+            labyrinth.laneMoveDirection = Direction.RIGHT;
+            labyrinth.getTileOut().move(labyrinth.dimension, labyrinth.selectedLaneY, labyrinth.tileOffset);
+          }
+        } break;
+
+        case "ArrowUp": {
+          if (labyrinth.selectionAxis == LaneAxis.VERTICAL) {
+            labyrinth.laneMoveDirection = Direction.UP;
+            labyrinth.getTileOut().move(labyrinth.selectedLaneX, -1, labyrinth.tileOffset);
+          }
+        } break;
+
+        case "ArrowDown": {
+          if (labyrinth.selectionAxis == LaneAxis.VERTICAL) {
+            labyrinth.laneMoveDirection = Direction.DOWN;
+            labyrinth.getTileOut().move(labyrinth.selectedLaneX, labyrinth.dimension, labyrinth.tileOffset);
+          }
+        } break;
+
+        case "Enter" : {          
+          labyrinth.moveLane();
+        } break;
+      }
+    } break;
+  }
+});
+
+const raycaster = new THREE.Raycaster();
+document.addEventListener('click', function(event) {
+  let ndc = new THREE.Vector2(
+    (event.clientX / window.innerWidth) * 2 - 1,
+    -(event.clientY / window.innerHeight) * 2 + 1
+  );
+  
+  switch (labyrinth.gamePhase) {
+    case GamePhase.MOVE_PLAYER: {
+      raycaster.setFromCamera(ndc, camera.perspective);
+      const intersects = raycaster.intersectObjects(labyrinth.selectedTiles);
+      if (intersects.length > 0) {
+        const tilePosition = intersects[0].object.position;
+        labyrinth.pawns[0].move(tilePosition.x, tilePosition.z);
+      }
+    } break;
+  }
+});
+
+function renderLoop() {
+  requestAnimationFrame(renderLoop);
+  renderer.render(scene, camera.perspective);
 }
 
-animate();
+renderLoop();

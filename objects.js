@@ -1,37 +1,48 @@
+function shuffle(arr) {
+    let i = arr.length, j;
+    while (i--) {
+      j = Math.floor(Math.random() * (i+1));
+      [arr[i] = arr[j]] = [arr[j] = arr[i]];
+    }
+    return arr;
+}
+
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
 class Pawn {
-  constructor(scene, x, y, hexColor) {
+  constructor(scene, x, y, offset, color) {
     this.geometry = new THREE.CapsuleGeometry(0.25, 0.5, 1, 4);
-    this.material = new THREE.MeshBasicMaterial({ color: hexColor });
+    this.material = new THREE.MeshBasicMaterial();
+    this.material.color.setColorName(color);
     this.mesh = new THREE.Mesh(this.geometry, this.material);
-    this.mesh.position.set(x, this.geometry.parameters.length, y);
+    this.mesh.position.set(x * offset, this.geometry.parameters.length, y * offset);
     scene.add(this.mesh);
   }
 
-  move(x, y) {
-    this.mesh.position.setX(x);
-    this.mesh.position.setZ(y);
+  move(x, y, offset) {
+    this.mesh.position.setX(x * offset);
+    this.mesh.position.setZ(y * offset);
   }
 }
 
 class Tile {
-  constructor(x, y, i) {
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    context.fillStyle = 'white';
-    context.font = '120px sans-serif';
-    context.textAlign = 'center';
-    context.fillText(i.toString(), 120, 120);    
-    const texture = new THREE.Texture(canvas)
-    texture.needsUpdate = true
-    var material = new THREE.MeshBasicMaterial({map: texture})
+  constructor(x, y, offset, i) {
+    // let canvas = document.createElement("canvas");
+    // let context = canvas.getContext("2d");
+    // context.fillStyle = "white";
+    // context.font = "100px sans-serif";
+    // context.textAlign = "center";
+    // context.fillText(i.toString(), 100, 100);    
+    // const texture = new THREE.Texture(canvas)
+    // texture.needsUpdate = true
+    // let material = new THREE.MeshBasicMaterial({map: texture})
     
     this.geometry = new THREE.BoxGeometry(1, 0, 1);
-    this.material = material;//new THREE.MeshBasicMaterial({ color: color });
+    // this.material = material;
+    this.material = new THREE.MeshBasicMaterial({ wireframe: true });
     this.mesh = new THREE.Mesh(this.geometry, this.material);
-    this.mesh.position.set(x, 0, y);
+    this.mesh.position.set(x * offset, 0, y * offset);
   }
 
   move(x, y, offset) {
@@ -65,18 +76,15 @@ class Labyrinth {
       return;
     }
 
-    this.gamePhase = GamePhase.SELECT_LANE;
     this.selectionAxis = LaneAxis.HORIZONTAL;
     this.laneMoveDirection = Direction.LEFT;
 
-    // this.currentPawnId = 0;
     this.selectedLaneX = -1;
     this.selectedLaneY = 1;
 
     this.dimension = dimension;
     this.tileOffset = tileOffset;
-    this.pawns = [];
-
+    
     this.tiles = [];
     this.selectedTiles = [];
 
@@ -84,30 +92,82 @@ class Labyrinth {
     for (let x = 0; x < dimension; ++x) {
       this.tiles.push([]);
       for (let y = 0; y < dimension; ++y) {
-        this.tiles[x].push(new Tile(x * tileOffset, y * tileOffset, `${x}, ${y}`));
+        this.tiles[x].push(new Tile(x, y, this.tileOffset, `${x}, ${y}`));
         scene.add(this.tiles[x][y].mesh);
       }
     }
-    let tileOut = new Tile(-1 * tileOffset, dimension * tileOffset, "YUP");
-    this.tiles.push(tileOut)
-    scene.add(tileOut.mesh);
 
+    // Create outter tile
+    let outterTile = new Tile(-1, dimension, this.tileOffset, "YUP");
+    this.tiles.push(outterTile)
+    scene.add(outterTile.mesh);
+
+    // Create players' pawn
+    this.players = [];
+    const maxPos = this.dimension - 1;
+    this.players.push(
+      new Pawn(scene, 0, 0, this.tileOffset, "red"),
+      new Pawn(scene, 0, maxPos, this.tileOffset, "blue"),
+      new Pawn(scene, maxPos, 0, this.tileOffset, "green"),
+      new Pawn(scene, maxPos, maxPos, this.tileOffset, "yellow")
+    );
+
+    // Create treasures (fixed and random ones)
+    this.nTreasures = Math.floor(24 * this.dimension / 7);
+    this.treasures = [];
+    let availTreasuresSlots = [];
+
+    // Fixed treasures
+    for (let x = 0; x < this.dimension; x++) {
+      for (let y = 0; y < this.dimension; y++) {
+        if ((x != 0 && x != this.dimension - 1) ||
+            (y != 0 && y != this.dimension - 1)) {
+          if (x % 2 == 0 && y % 2 == 0) {
+            this.treasures.push(new Pawn(scene, x, y, this.tileOffset, "white"));
+          }
+          else {
+            availTreasuresSlots.push([x, y]);
+          }
+        }
+      }
+    }
+    
+    // Randomize moving treasures
+    let rTreasures = shuffle(availTreasuresSlots).slice(0, this.nTreasures / 2);
+    for (let i = 0; i < rTreasures.length; i++) {
+      this.treasures.push(
+        new Pawn(scene, rTreasures[i][0], rTreasures[i][1], this.tileOffset, "purple")
+      );
+      //TODO: Link moving treasures to its tiles
+    }
+    
     // Default lane selection color
     for (let x = 0; x < this.dimension; ++x)
       this.tiles[x][this.selectedLaneY].material.color.setHex(0x00ff00);
-
-    // Init pawns
-    const maxPos = (this.dimension - 1) * this.tileOffset;
-    this.pawns.push(
-      new Pawn(scene, 0, 0, 0xffcc00),
-      new Pawn(scene, 0, maxPos, 0xccff00),
-      new Pawn(scene, maxPos, 0, 0x00ccff),
-      new Pawn(scene, maxPos, maxPos, 0xfccffc)
-    );
   }
 
-  getTileOut() {
+  _getOutterTile() {
     return this.tiles[this.dimension];
+  }
+
+  moveOutterTileToEntryPoint() {
+    switch (this.laneMoveDirection) {
+      case Direction.UP:
+        this._getOutterTile().move(this.selectedLaneX, -1, this.tileOffset);
+        break;
+        
+      case Direction.DOWN:
+        this._getOutterTile().move(this.selectedLaneX, this.dimension, this.tileOffset);
+        break;
+
+      case Direction.LEFT:
+        this._getOutterTile().move(-1, this.selectedLaneY, this.tileOffset);
+        break;
+
+      case Direction.RIGHT:
+        this._getOutterTile().move(this.dimension, this.selectedLaneY, this.tileOffset);
+        break;
+    }
   }
 
   selectLane(axis) {
@@ -160,7 +220,7 @@ class Labyrinth {
   moveLane() {
     switch(this.laneMoveDirection) {
       case Direction.UP: {
-        this.getTileOut().move(this.selectedLaneX, 0, this.tileOffset);
+        this._getOutterTile().move(this.selectedLaneX, 0, this.tileOffset);
         
         for (let i = 0; i < this.dimension; i++) {
           this.tiles[this.selectedLaneX][i].move(this.selectedLaneX, i + 1, this.tileOffset);
@@ -190,7 +250,7 @@ class Labyrinth {
       } break;
         
       case Direction.DOWN: {
-        this.getTileOut()
+        this._getOutterTile()
           .move(this.selectedLaneX, this.dimension - 1, this.tileOffset);
         
         for (let i = this.dimension - 1; i >= 0; i--) {
@@ -218,12 +278,12 @@ class Labyrinth {
           this.tiles[this.dimension]
         ];
         
-        this.getTileOut().move(this.selectedLaneX, -1, this.tileOffset);
+        this._getOutterTile().move(this.selectedLaneX, -1, this.tileOffset);
         this.backToSelectionMode();
       } break;
         
       case Direction.LEFT: {
-        this.getTileOut().move(0, this.selectedLaneY, this.tileOffset);
+        this._getOutterTile().move(0, this.selectedLaneY, this.tileOffset);
         
         for (let i = 0; i < this.dimension; i++) {
           this.tiles[i][this.selectedLaneY]
@@ -254,7 +314,7 @@ class Labyrinth {
       } break;
         
       case Direction.RIGHT: {
-        this.getTileOut()
+        this._getOutterTile()
           .move(this.dimension - 1, this.selectedLaneY, this.tileOffset);
         
         for (let i = this.dimension - 1; i >= 0; i--) {
@@ -282,7 +342,7 @@ class Labyrinth {
           this.tiles[this.dimension]
         ];
         
-        this.getTileOut().move(-1, this.selectedLaneY, this.tileOffset);
+        this._getOutterTile().move(-1, this.selectedLaneY, this.tileOffset);
         this.backToSelectionMode();
       } break;
     }
@@ -309,10 +369,29 @@ class OrbitCamera {
   }
 }
 
-export {
-  OrbitCamera,
-  Labyrinth,
-  GamePhase,
-  LaneAxis,
-  Direction
-};
+class Game {
+  constructor() {
+    this.scene = new THREE.Scene();
+    this.raycaster = new THREE.Raycaster();
+    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(this.renderer.domElement);
+
+    this.labyrinth = new Labyrinth(this.scene, 7, 1.25);
+    this.labyrinth.selectLane(LaneAxis.HORIZONTAL);
+    this.labyrinth.fillSelectedLane("green");
+    
+    const target = (this.labyrinth.dimension - 1) / 2 * this.labyrinth.tileOffset;
+    const aspect = window.innerWidth / window.innerHeight;
+    this.camera = new OrbitCamera(target, aspect, this.labyrinth, this.renderer);
+    
+    this.playerTurn = 0;
+    this.gamePhase = GamePhase.SELECT_LANE;
+  }
+
+  render() {
+    this.renderer.render(this.scene, this.camera.perspective);  
+  }
+}
+
+export { Game, GamePhase, LaneAxis, Direction };

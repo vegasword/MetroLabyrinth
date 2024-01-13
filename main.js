@@ -26,8 +26,6 @@ window.addEventListener("resize", function() {
   renderer.render(scene, camera.perspective);
 });
 
-labyrinth.selectLane(LaneAxis.HORIZONTAL);
-labyrinth.fillSelectedLane(0x00ff00);
 document.addEventListener("keydown", function(event) {
   switch (labyrinth.gamePhase) {
     case GamePhase.SELECT_LANE: {
@@ -40,14 +38,14 @@ document.addEventListener("keydown", function(event) {
             labyrinth.selectedLaneY -= 2;
           }
           labyrinth.selectLane(LaneAxis.HORIZONTAL);
-          labyrinth.fillSelectedLane(0x00ff00);
+          labyrinth.fillSelectedLane("green");
         } break;
 
         case "ArrowDown": {
           if (labyrinth.selectedLaneY + 2 < labyrinth.dimension)
             labyrinth.selectedLaneY += 2;
           labyrinth.selectLane(LaneAxis.HORIZONTAL);
-          labyrinth.fillSelectedLane(0x00ff00);
+          labyrinth.fillSelectedLane("green");
         } break;
 
         case "ArrowLeft": {
@@ -58,19 +56,19 @@ document.addEventListener("keydown", function(event) {
             labyrinth.selectedLaneX -= 2;
           }
           labyrinth.selectLane(LaneAxis.VERTICAL);
-          labyrinth.fillSelectedLane(0x00ff00);
+          labyrinth.fillSelectedLane("green");
         } break;
 
         case "ArrowRight": {
           if (labyrinth.selectedLaneX + 2 < labyrinth.dimension)
             labyrinth.selectedLaneX += 2;
           labyrinth.selectLane(LaneAxis.VERTICAL);
-          labyrinth.fillSelectedLane(0x00ff00);
+          labyrinth.fillSelectedLane("green");
         } break;
 
         case "Enter": {
           labyrinth.gamePhase = GamePhase.MOVE_LANE;
-          labyrinth.fillSelectedLane(0xffcc00);
+          labyrinth.fillSelectedLane("yellow");
         } break;
       }
     } break;
@@ -79,7 +77,7 @@ document.addEventListener("keydown", function(event) {
       switch (event.key) {
         case "Escape": {
           labyrinth.gamePhase = GamePhase.SELECT_LANE;
-          labyrinth.fillSelectedLane(0x00ff00);
+          labyrinth.fillSelectedLane("green");
         } break;
 
         case "ArrowLeft": {
@@ -112,9 +110,14 @@ document.addEventListener("keydown", function(event) {
 
         case "Enter" : {          
           labyrinth.moveLane();
+          labyrinth.fillSelectedLane("green");
+          labyrinth.getTileOut().material.color.setColorName("white");
+          //TODO: Player path finding and then GamePhase.MOVE_PLAYER 
         } break;
       }
-    } break;
+    } break;    
+
+    default: break;
   }
 });
 
@@ -142,4 +145,6 @@ function renderLoop() {
   renderer.render(scene, camera.perspective);
 }
 
+labyrinth.selectLane(LaneAxis.HORIZONTAL);
+labyrinth.fillSelectedLane("green");
 renderLoop();

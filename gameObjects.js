@@ -114,23 +114,25 @@ class Labyrinth {
     this.selectedTiles = [];
     for (let x = 0; x < this.dimension; ++x)
       for (let y = 0; y < this.dimension; ++y)
-        this.tiles[x][y].material.color.setHex(0xffffff);
+        this.tiles[x][y].material.color.setColorName("white");
 
     this.selectionAxis = axis;
     if (axis === LaneAxis.HORIZONTAL) {
+      this.laneMoveDirection = Direction.LEFT;
       for (let x = 0; x < this.dimension; ++x) {
         this.selectedTiles.push(this.tiles[x][this.selectedLaneY]);
       }
     }
     else if (axis === LaneAxis.VERTICAL) {
+      this.laneMoveDirection = Direction.TOP;
       for (let y = 0; y < this.dimension; ++y) {
         this.selectedTiles.push(this.tiles[this.selectedLaneX][y]);
       }
     }
   }
 
-  fillSelectedLane(hexColor) {
-    this.selectedTiles.forEach(tile=>{tile.material.color.setHex(hexColor);});
+  fillSelectedLane(color) {
+    this.selectedTiles.forEach(tile=>{tile.material.color.setColorName(color);});
   }
 
   backToSelectionMode() { // TMP: Remove after impl path finding for player movements

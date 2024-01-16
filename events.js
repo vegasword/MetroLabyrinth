@@ -10,7 +10,6 @@ export function selectLaneFromKeyboard(event, game) {
         game.labyrinth.selectedLaneY = game.labyrinth.dimension - 2;
       }
       game.labyrinth.selectLane(LaneAxis.HORIZONTAL);
-      game.labyrinth.fillSelectedLane("green");
     } break;
 
     case "ArrowDown": {
@@ -21,7 +20,6 @@ export function selectLaneFromKeyboard(event, game) {
         game.labyrinth.selectedLaneY = 1;
       }
       game.labyrinth.selectLane(LaneAxis.HORIZONTAL);
-      game.labyrinth.fillSelectedLane("green");
     } break;
 
     case "ArrowLeft": {
@@ -32,7 +30,6 @@ export function selectLaneFromKeyboard(event, game) {
         game.labyrinth.selectedLaneX = game.labyrinth.dimension - 2;
       }
       game.labyrinth.selectLane(LaneAxis.VERTICAL);
-      game.labyrinth.fillSelectedLane("green");
     } break;
 
     case "ArrowRight": {
@@ -43,7 +40,6 @@ export function selectLaneFromKeyboard(event, game) {
         game.labyrinth.selectedLaneX = 1;
       }
       game.labyrinth.selectLane(LaneAxis.VERTICAL);
-      game.labyrinth.fillSelectedLane("green");
     } break;
 
     case "Enter": {
@@ -62,7 +58,6 @@ export function selectLaneFromKeyboard(event, game) {
       game.labyrinth.moveOuterTileToEntryPoint();
 
       game.gamePhase = GamePhase.MOVE_LANE;
-      game.labyrinth.fillSelectedLane("purple");
     } break;
   }
 }
@@ -71,7 +66,6 @@ export function moveLaneFromKeyboard(event, game) {
   switch (event.key) {
     case "Escape": {
       game.gamePhase = GamePhase.SELECT_LANE;
-      game.labyrinth.fillSelectedLane("green");
     } break;
 
     case "ArrowLeft": {
@@ -104,15 +98,8 @@ export function moveLaneFromKeyboard(event, game) {
 
     case "Enter": {
       game.labyrinth.moveLane();
-      if (!game.labyrinth.getOuterTile().haveTreasure) {
-        game.labyrinth.getOuterTile().material.color.setColorName("white");
-      }
-      else {
-        game.labyrinth.getOuterTile().material.color.setColorName("gold");
-      }
       //TODO: Player path finding and then GamePhase.MOVE_PLAYER 
       // Remove these two lines bellow once TODO done
-      game.labyrinth.fillSelectedLane("green");
       game.gamePhase = GamePhase.SELECT_LANE;
     } break;
   }

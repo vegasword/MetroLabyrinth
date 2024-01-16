@@ -23,7 +23,7 @@ document.addEventListener("keydown", function(event) {
   }
 });
 
-document.addEventListener('click', function(event) {
+document.addEventListener("click", function(event) {
   if (game.gamePhase == GamePhase.MOVE_PLAYER) {
     let ndc = new THREE.Vector2(
       (event.clientX / window.innerWidth) * 2 - 1,

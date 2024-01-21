@@ -1,35 +1,14 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
-const GamePhase = Object.freeze({
-  "SELECT_LANE": 0,
-  "MOVE_LANE": 1,
-  "MOVE_PLAYER": 2
-});
-
-const LaneAxis = Object.freeze({
-  "VERTICAL": 0,
-  "HORIZONTAL": 1,
-});
-
-const Direction = Object.freeze({
-  "UP": 0,
-  "RIGHT": 1,
-  "DOWN": 2,
-  "LEFT": 3,
-});
-
-const TileType = Object.freeze({
-  "STRAIGHT": 0,
-  "CORNER": 1,
-  "TJUNCTION": 2
-});
-
+const GamePhase = Object.freeze({"SELECT_LANE": 0,"MOVE_LANE": 1,"MOVE_PLAYER": 2});
+const LaneAxis = Object.freeze({"VERTICAL": 0,"HORIZONTAL": 1});
+const Direction = Object.freeze({"UP": 0,"RIGHT": 1,"DOWN": 2,"LEFT": 3});
+const TileType = Object.freeze({"STRAIGHT": 0,"CORNER": 1,"TJUNCTION": 2});
 
 class Pawn {
   constructor(scene, x, y, offset, color) {
-    this.x = x;
-    this.y = y;
+    this.x = x; this.y = y;
     this.hasMoved = false;
     this.geometry = new THREE.CapsuleGeometry(0.25, 0.5, 1, 4);
     this.material = new THREE.MeshBasicMaterial();
@@ -39,13 +18,8 @@ class Pawn {
     scene.add(this.mesh);
   }
 
-  checkPosition(x, y) {
-    return (this.x == x && this.y == y);
-  }
-
   move(x, y, offset) {
-    this.x = x;
-    this.y = y;
+    this.x = x; this.y = y;
     this.mesh.position.setX(x * offset);
     this.mesh.position.setZ(y * offset);
   }
@@ -53,25 +27,28 @@ class Pawn {
 
 class Tile {
   constructor(x, y, offset) {
+    this.x = x; this.y = y;
     this.geometry = new THREE.BoxGeometry(1, 0, 1);
     this.mesh = new THREE.Mesh(this.geometry, new THREE.MeshBasicMaterial());
     this.mesh.position.set(x * offset, 0, y * offset);
-
     this.type = undefined;
     this.directions = [];
     this.haveTreasure = false;
   }
 
   move(x, y, offset) {
+    this.x = x; this.y = y;
     this.mesh.position.setX(x * offset);
     this.mesh.position.setZ(y * offset);
   }
 
   rotateCounterClockwise(n = 1) {
     for (let i = 0; i < n; ++i) {
-      for (let direction of this.directions) {
-        direction++;
-        if (direction > Direction.LEFT) direction = Direction.UP;
+      for (let j = 0; j < this.directions.length; ++j) {
+        this.directions[j]--;
+        if (this.directions[j] < Direction.UP) {
+          this.directions[j] = Direction.LEFT;
+        }
       }
       this.mesh.geometry.rotateY(Math.PI / 2);
     }
@@ -79,19 +56,42 @@ class Tile {
 
   rotateClockwise(n = 1) {
     for (let i = 0; i < n; ++i) {
-      for (let direction of this.directions) {
-        direction--;
-        if (direction < Direction.UP) direction = Direction.LEFT;
+      for (let j = 0; j < this.directions.length; ++j) {
+        this.directions[j]++;
+        if (this.directions[j] > Direction.LEFT) {
+          this.directions[j] = Direction.UP;
+        }
       }
       this.mesh.geometry.rotateY(-Math.PI / 2);
     }
   }
 
+  setDefaultDirections(type) {    
+    switch (type) {
+      case TileType.STRAIGHT: {
+        this.directions.push(Direction.UP);
+        this.directions.push(Direction.DOWN);        
+      } break;
+
+      case TileType.CORNER: {
+        this.directions.push(Direction.RIGHT);
+        this.directions.push(Direction.DOWN);
+      } break;
+
+      case TileType.TJUNCTION: {
+        this.directions.push(Direction.LEFT);
+        this.directions.push(Direction.DOWN);
+        this.directions.push(Direction.RIGHT);
+      } break;
+    }
+  }
+  
   setRandomType() {
     this.type = Math.round(Math.random() * TileType.TJUNCTION);
+    this.setDefaultDirections(this.type);
   }
 
-  updateTexture(x, y) {
+  updateTexture() {
     switch (this.type) {
       case TileType.STRAIGHT:
         this.mesh.material.map = new THREE.TextureLoader().load("data/straight.jpg");
@@ -104,27 +104,18 @@ class Tile {
       case TileType.TJUNCTION:
         this.mesh.material.map = new THREE.TextureLoader().load("data/tjunction.jpg");
         break;
-
-      default:
-        console.log(`Failed on ${x} ${y}: ${this.directions}`);
-        break;
     }
   }
 
   rotateRandomly() {
     switch (this.type) {
-      case TileType.STRAIGHT: {
-        this.directions.push(Direction.UP);
-        this.directions.push(Direction.DOWN);
+      case TileType.STRAIGHT: {        
         if (Math.round(Math.random()) == 1) {
           this.rotateClockwise();
         }
       } break;
 
       case TileType.CORNER: {
-        this.directions.push(Direction.LEFT);
-        this.directions.push(Direction.UP);
-
         let shuffle = Math.round(Math.random() * 4);
         for (let i = 0; i < shuffle; ++i) {
           if (Math.round(Math.random()) == 1) {
@@ -136,10 +127,6 @@ class Tile {
       } break;
 
       case TileType.TJUNCTION: {
-        this.directions.push(Direction.LEFT);
-        this.directions.push(Direction.UP);
-        this.directions.push(Direction.RIGHT);
-
         let shuffle = Math.round(Math.random() * 4);
         for (let i = 0; i < shuffle; ++i) {
           if (Math.round(Math.random()) == 1) {
@@ -181,9 +168,10 @@ class Labyrinth {
 
     this.tiles = [];
     this.selectedTiles = [];
+    this.pathFoundTiles = [];
 
-    const maxDim = this.dimension - 1;
-    const hDim = maxDim / 2;
+    this.maxDim = this.dimension - 1;
+    this.hDim = this.maxDim / 2;
 
     // Build the labyrinth
     for (let x = 0; x < dimension; ++x) {
@@ -199,21 +187,21 @@ class Labyrinth {
     this.tiles[0][0].directions = [Direction.RIGHT, Direction.DOWN];
     this.tiles[0][0].updateTexture();
 
-    this.tiles[0][maxDim].type = TileType.CORNER;
-    this.tiles[0][maxDim].directions = [Direction.RIGHT, Direction.DOWN];
-    this.tiles[0][maxDim].updateTexture();
-    this.tiles[0][maxDim].rotateCounterClockwise();
+    this.tiles[0][this.maxDim].type = TileType.CORNER;
+    this.tiles[0][this.maxDim].updateTexture();
+    this.tiles[0][this.maxDim].directions = [Direction.RIGHT, Direction.DOWN];
+    this.tiles[0][this.maxDim].rotateCounterClockwise();
 
-    this.tiles[maxDim][0].type = TileType.CORNER;
-    this.tiles[maxDim][0].directions = [Direction.RIGHT, Direction.DOWN];
-    this.tiles[maxDim][0].updateTexture();
-    this.tiles[maxDim][0].rotateClockwise();
+    this.tiles[this.maxDim][0].type = TileType.CORNER;
+    this.tiles[this.maxDim][0].updateTexture();
+    this.tiles[this.maxDim][0].directions = [Direction.RIGHT, Direction.DOWN];
+    this.tiles[this.maxDim][0].rotateClockwise();
 
-    this.tiles[maxDim][maxDim].type = TileType.CORNER;
-    this.tiles[maxDim][maxDim].directions = [Direction.RIGHT, Direction.DOWN];
-    this.tiles[maxDim][maxDim].updateTexture();
-    this.tiles[maxDim][maxDim].rotateClockwise();
-    this.tiles[maxDim][maxDim].rotateClockwise();
+    this.tiles[this.maxDim][this.maxDim].type = TileType.CORNER;
+    this.tiles[this.maxDim][this.maxDim].updateTexture();
+    this.tiles[this.maxDim][this.maxDim].directions = [Direction.RIGHT, Direction.DOWN];
+    this.tiles[this.maxDim][this.maxDim].rotateClockwise();
+    this.tiles[this.maxDim][this.maxDim].rotateClockwise();
 
     // Create outer tile
     let outerTile = new Tile(-1, dimension, this.tileOffset);
@@ -225,10 +213,10 @@ class Labyrinth {
 
     // Create pawns
     this.pawns = [];
-    this.pawns.push(new Pawn(scene, 1, 0, this.tileOffset, "red"));
-    this.pawns.push(new Pawn(scene, 0, maxDim, this.tileOffset, "blue"));
-    this.pawns.push(new Pawn(scene, maxDim, 0, this.tileOffset, "green"));
-    this.pawns.push(new Pawn(scene, maxDim, maxDim, this.tileOffset, "yellow"));
+    this.pawns.push(new Pawn(scene, 0, 0, this.tileOffset, "red"));
+    this.pawns.push(new Pawn(scene, 0, this.maxDim, this.tileOffset, "blue"));
+    this.pawns.push(new Pawn(scene, this.maxDim, 0, this.tileOffset, "green"));
+    this.pawns.push(new Pawn(scene, this.maxDim, this.maxDim, this.tileOffset, "yellow"));
 
     // Create treasures (fixed and random ones)
     this.nTreasures = Math.floor(24 * this.dimension / 7);
@@ -237,40 +225,24 @@ class Labyrinth {
     // Assign fixed treasures and apply the right rotation to their T-junctions
     for (let x = 0; x < this.dimension; x++) {
       for (let y = 0; y < this.dimension; y++) {
-        if ((x != 0 && x != maxDim) || (y != 0 && y != maxDim)) {
+        if ((x != 0 && x != this.maxDim) || (y != 0 && y != this.maxDim)) {
           if (x % 2 == 0 && y % 2 == 0) {
             this.tiles[x][y].type = TileType.TJUNCTION;
+            this.tiles[x][y].setDefaultDirections(TileType.TJUNCTION);
             this.tiles[x][y].updateTexture();
             this.tiles[x][y].haveTreasure = true;
 
             // Borders fixed T-junctions rotation
-            if (x == 0) {
-              this.tiles[x][y].rotateCounterClockwise();
-              continue;
-            }
-            if (x == maxDim) {
-              this.tiles[x][y].rotateClockwise();
-              continue;
-            }
-            if (y == maxDim) {
-              this.tiles[x][y].rotateClockwise(2);
-              continue;
-            }
+            if (x == 0) { this.tiles[x][y].rotateCounterClockwise(); continue; }
+            if (y == 0) { continue; }
+            if (x == this.maxDim) { this.tiles[x][y].rotateClockwise(); continue; }
+            if (y == this.maxDim) { this.tiles[x][y].rotateClockwise(2); continue; }
 
             // Other fixed T-junctions rotation
-            if (x < hDim && y < hDim) {
-              this.tiles[x][y].rotateCounterClockwise();
-              continue;
-            }
-            if (x < hDim && y > hDim) {
-              this.tiles[x][y].rotateClockwise(2);
-              continue;
-            }
-            if (x > hDim && y > hDim) {
-              this.tiles[x][y].rotateClockwise();
-              continue;
-            }
-          }
+            if (x < this.hDim && y < this.hDim) { this.tiles[x][y].rotateCounterClockwise(); continue; }
+            if (x < this.hDim && y > this.hDim) { this.tiles[x][y].rotateClockwise(2); continue; }
+            if (x > this.hDim && y > this.hDim) { this.tiles[x][y].rotateClockwise(); continue; }
+          } 
           else {
             availTreasuresSlots.push([x, y]);
           }
@@ -286,18 +258,15 @@ class Labyrinth {
       this.tiles[x][y].haveTreasure = true;
     }
 
-    // Generate tiles type and direction randomly
+    // Generate tiles type and direction randomly proportionally to the og game
     let tilesType = [];
     let quotaRandomTilesType = {
       [TileType.STRAIGHT]: Math.round(this.dimension * this.dimension / 28 * this.dimension),
       [TileType.CORNER]: Math.round(this.dimension * this.dimension / 21 * this.dimension),
       [TileType.TJUNCTION]: Math.round(this.dimension * this.dimension / 57  * this.dimension)
     };
-    console.log(`12 = ${quotaRandomTilesType[TileType.STRAIGHT]}`);
-    console.log(`16 = ${quotaRandomTilesType[TileType.CORNER]}`);
-    console.log(`6 = ${quotaRandomTilesType[TileType.TJUNCTION]}`);
-    console.log(`Total: ${quotaRandomTilesType[TileType.STRAIGHT]+quotaRandomTilesType[TileType.CORNER]+quotaRandomTilesType[TileType.TJUNCTION]}`);
     quotaRandomTilesType[outerTile.type]--;
+    
     function fillTilesType(type) {
       for (let i = 0; i < quotaRandomTilesType[type]; ++i) tilesType.push(type);
     }
@@ -311,7 +280,8 @@ class Labyrinth {
       for (let y = 0; y < this.dimension; y++) {
         if (this.tiles[x][y].type == undefined) {
           this.tiles[x][y].type = tilesType[n];
-          this.tiles[x][y].updateTexture(x, y);
+          this.tiles[x][y].setDefaultDirections(tilesType[n]);
+          this.tiles[x][y].updateTexture();
           this.tiles[x][y].rotateRandomly();
           n++;
         }
@@ -336,224 +306,165 @@ class Labyrinth {
     }
   }
 
-  backToSelectionMode() { //TODO: Remove after player's pawn movements impl.
-    this.gamePhase = GamePhase.SELECT_LANE;
-    this.selectedTiles = [];
-    switch (this.selectionAxis) {
-      case LaneAxis.HORIZONTAL: {
-        for (let x = 0; x < this.dimension; ++x) {
-          this.selectedTiles.push(this.tiles[x][this.selectedLaneY]);
-        }
-      } break;
+  rotateOuterTile() {
+    this.tiles[this.dimension].rotateClockwise();
+  }
 
-      case LaneAxis.VERTICAL: {
-        for (let y = 0; y < this.dimension; ++y) {
-          this.selectedTiles.push(this.tiles[this.selectedLaneX][y]);
-        } break;
-      }
+  moveOuterTile(x , y) {
+    this.tiles[this.dimension].move(x, y, this.tileOffset);
+  }
+
+  moveOuterTileToEntryPoint() {
+    switch (this.laneEntryPoint) {
+      case Direction.UP: this.moveOuterTile(this.selectedLaneX, -1); break;
+      case Direction.DOWN: this.moveOuterTile(this.selectedLaneX, this.dimension); break;
+      case Direction.LEFT: this.moveOuterTile(-1, this.selectedLaneY); break;
+      case Direction.RIGHT: this.moveOuterTile(this.dimension, this.selectedLaneY); break;
     }
   }
 
-  movePawn(fromX, fromY) {
+  moveTiles(fromX, fromY, toX, toY) {
+    this.tiles[fromX][fromY].move(toX, toY, this.tileOffset);
+    
     for (let pawn of this.pawns) {
-      if (pawn.hasMoved == false && pawn.checkPosition(fromX, fromY)) {
+      if (pawn.hasMoved == false && pawn.x === fromX && pawn.y === fromY) {
         switch (this.laneEntryPoint) {
           case Direction.UP: {
             let delta = pawn.y + 1;
-            if (delta < this.dimension) {
-              pawn.move(pawn.x, delta, this.tileOffset);
-            } else {
-              pawn.move(pawn.x, 0, this.tileOffset);
-            }
+            if (delta < this.dimension) pawn.move(pawn.x, delta, this.tileOffset);
+            else pawn.move(pawn.x, 0, this.tileOffset);
           } break;
 
           case Direction.DOWN: {
             let delta = pawn.y - 1;
-            if (delta > -1) {
-              pawn.move(pawn.x, delta, this.tileOffset);
-            } else {
-              pawn.move(pawn.x, this.dimension - 1, this.tileOffset);
-            }
+            if (delta > -1) pawn.move(pawn.x, delta, this.tileOffset);
+            else pawn.move(pawn.x, this.maxDim, this.tileOffset);
           } break;
 
           case Direction.LEFT: {
             let delta = pawn.x + 1;
-            if (delta < this.dimension) {
-              pawn.move(delta, pawn.y, this.tileOffset);
-            } else {
-              pawn.move(0, pawn.y, this.tileOffset);
-            }
+            if (delta < this.dimension) pawn.move(delta, pawn.y, this.tileOffset);
+            else pawn.move(0, pawn.y, this.tileOffset);
           } break;
 
           case Direction.RIGHT: {
             let delta = pawn.x - 1;
-            if (delta > -1) {
-              pawn.move(delta, pawn.y, this.tileOffset);
-            } else {
-              pawn.move(this.dimension - 1, pawn.y, this.tileOffset);
-            }
+            if (delta > -1) pawn.move(delta, pawn.y, this.tileOffset);
+            else pawn.move(this.maxDim, pawn.y, this.tileOffset);
           } break;
-
         }
         pawn.hasMoved = true;
       }
     }
   }
 
-  moveOuterTile(x, y) {
-    this.tiles[this.dimension].move(x, y, this.tileOffset);
-  }
-
-  moveOuterTileToEntryPoint() {
-    switch (this.laneEntryPoint) {
-      case Direction.UP:
-        this.moveOuterTile(this.selectedLaneX, -1);
-        break;
-
-      case Direction.DOWN:
-        this.moveOuterTile(this.selectedLaneX, this.dimension);
-        break;
-
-      case Direction.LEFT:
-        this.moveOuterTile(-1, this.selectedLaneY);
-        break;
-
-      case Direction.RIGHT:
-        this.moveOuterTile(this.dimension, this.selectedLaneY);
-        break;
-    }
-  }
-
-  moveTile(fromX, fromY, toX, toY) {
-    this.tiles[fromX][fromY].move(toX, toY, this.tileOffset);
-    this.movePawn(fromX, fromY);
-  }
-
   moveLane() {
     switch (this.laneEntryPoint) {
       case Direction.UP: {
-        this.moveOuterTile(this.selectedLaneX, 0, this.tileOffset);
-
+        this.moveOuterTile(this.selectedLaneX, 0);
         for (let i = 0; i < this.dimension; i++) {
-          this.moveTile(this.selectedLaneX, i, this.selectedLaneX, i + 1);
-
-          [
-            this.tiles[this.selectedLaneX][0],
-            this.tiles[this.selectedLaneX][i]
-          ]
-            =
-            [
-              this.tiles[this.selectedLaneX][i],
-              this.tiles[this.selectedLaneX][0]
-            ];
+          this.moveTiles(this.selectedLaneX, i, this.selectedLaneX, i + 1); 
+          [this.tiles[this.selectedLaneX][0],this.tiles[this.selectedLaneX][i]]=
+          [this.tiles[this.selectedLaneX][i],this.tiles[this.selectedLaneX][0]];
         }
-
-        [
-          this.tiles[this.dimension],
-          this.tiles[this.selectedLaneX][0]
-        ]
-          =
-          [
-            this.tiles[this.selectedLaneX][0],
-            this.tiles[this.dimension]
-          ];
-
-        this.backToSelectionMode();
+        [this.tiles[this.dimension],this.tiles[this.selectedLaneX][0]]=
+        [this.tiles[this.selectedLaneX][0],this.tiles[this.dimension]];
       } break;
 
       case Direction.DOWN: {
-        this.moveOuterTile(this.selectedLaneX, this.dimension - 1);
-
-        for (let i = this.dimension - 1; i >= 0; i--) {
-          this.moveTile(this.selectedLaneX, i, this.selectedLaneX, i - 1);
-
-          [
-            this.tiles[this.selectedLaneX][this.dimension - 1],
-            this.tiles[this.selectedLaneX][i]
-          ]
-            =
-            [
-              this.tiles[this.selectedLaneX][i],
-              this.tiles[this.selectedLaneX][this.dimension - 1]
-            ];
+        this.moveOuterTile(this.selectedLaneX, this.maxDim);
+        for (let i = this.maxDim; i >= 0; i--) {
+          this.moveTiles(this.selectedLaneX, i, this.selectedLaneX, i - 1);
+          [this.tiles[this.selectedLaneX][this.maxDim],this.tiles[this.selectedLaneX][i]]=
+          [this.tiles[this.selectedLaneX][i],this.tiles[this.selectedLaneX][this.maxDim]];
         }
-
-        [
-          this.tiles[this.dimension],
-          this.tiles[this.selectedLaneX][this.dimension - 1]
-        ]
-          =
-          [
-            this.tiles[this.selectedLaneX][this.dimension - 1],
-            this.tiles[this.dimension]
-          ];
-
+        [this.tiles[this.dimension],this.tiles[this.selectedLaneX][this.maxDim]]=
+        [this.tiles[this.selectedLaneX][this.maxDim],this.tiles[this.dimension]];
         this.moveOuterTile(this.selectedLaneX, -1);
-        this.backToSelectionMode();
       } break;
 
       case Direction.LEFT: {
         this.moveOuterTile(0, this.selectedLaneY);
-
         for (let i = 0; i < this.dimension; i++) {
-          this.moveTile(i, this.selectedLaneY, i + 1, this.selectedLaneY);
-
-          [
-            this.tiles[0][this.selectedLaneY],
-            this.tiles[i][this.selectedLaneY]
-          ]
-            =
-            [
-              this.tiles[i][this.selectedLaneY],
-              this.tiles[0][this.selectedLaneY]
-            ];
+          this.moveTiles(i, this.selectedLaneY, i + 1, this.selectedLaneY);
+          [this.tiles[0][this.selectedLaneY],this.tiles[i][this.selectedLaneY]]=
+          [this.tiles[i][this.selectedLaneY],this.tiles[0][this.selectedLaneY]];
         }
-
-        [
-          this.tiles[this.dimension],
-          this.tiles[0][this.selectedLaneY]
-        ]
-          =
-          [
-            this.tiles[0][this.selectedLaneY],
-            this.tiles[this.dimension]
-          ];
-
-        this.backToSelectionMode();
+        [this.tiles[this.dimension],this.tiles[0][this.selectedLaneY]]=
+        [this.tiles[0][this.selectedLaneY],this.tiles[this.dimension]];
       } break;
 
       case Direction.RIGHT: {
-        this.moveOuterTile(this.dimension - 1, this.selectedLaneY);
-
-        for (let i = this.dimension - 1; i >= 0; i--) {
-          this.moveTile(i, this.selectedLaneY, i - 1, this.selectedLaneY);
-
-          [
-            this.tiles[this.dimension - 1][this.selectedLaneY],
-            this.tiles[i][this.selectedLaneY]
-          ]
-            =
-            [
-              this.tiles[i][this.selectedLaneY],
-              this.tiles[this.dimension - 1][this.selectedLaneY]
-            ];
+        this.moveOuterTile(this.maxDim, this.selectedLaneY);
+        for (let i = this.maxDim; i >= 0; i--) {
+          this.moveTiles(i, this.selectedLaneY, i - 1, this.selectedLaneY);
+          [this.tiles[this.maxDim][this.selectedLaneY],this.tiles[i][this.selectedLaneY]]=
+          [this.tiles[i][this.selectedLaneY],this.tiles[this.maxDim][this.selectedLaneY]];
         }
-
-        [
-          this.tiles[this.dimension],
-          this.tiles[this.dimension - 1][this.selectedLaneY]
-        ]
-          =
-          [
-            this.tiles[this.dimension - 1][this.selectedLaneY],
-            this.tiles[this.dimension]
-          ];
-
+        [this.tiles[this.dimension],this.tiles[this.maxDim][this.selectedLaneY]]=
+        [this.tiles[this.maxDim][this.selectedLaneY],this.tiles[this.dimension]];
         this.moveOuterTile(-1, this.selectedLaneY);
-        this.backToSelectionMode();
       } break;
     }
     for (let pawn of this.pawns) pawn.hasMoved = false;
+  }
+
+  getPlayerTile(id) {
+    const player = this.pawns[id];
+    return this.tiles[player.x][player.y];
+  }
+  
+  playerPathFinding(root, entry) {
+    if (this.pathFoundTiles.includes(root)) return;
+    
+    const newSize = this.pathFoundTiles.push(root);
+    let last = this.pathFoundTiles[newSize - 1];
+    
+    for (let direction of last.directions) {
+      if (entry === direction) continue;
+      
+      switch (direction) {
+        case Direction.LEFT: {
+          const prevRow =  last.x - 1;
+          if (prevRow >= 0) {
+            let neighbour = this.tiles[prevRow][last.y];
+            if (neighbour.directions.includes(Direction.RIGHT)) {
+              this.playerPathFinding(neighbour, Direction.RIGHT);
+            }
+          }
+        } break;
+          
+        case Direction.RIGHT: {
+          const nextRow =  last.x + 1;
+          if (nextRow <= this.maxDim) {
+            let neighbour = this.tiles[nextRow][last.y];
+            if (neighbour.directions.includes(Direction.LEFT)) {
+              this.playerPathFinding(neighbour, Direction.LEFT);
+            }
+          }
+        } break;
+
+        case Direction.UP: {
+          const prevCol =  last.y - 1;
+          if (prevCol >= 0) {
+            let neighbour = this.tiles[last.x][prevCol];
+            if (neighbour.directions.includes(Direction.DOWN)) {
+              this.playerPathFinding(neighbour, Direction.DOWN);
+            }
+          }
+        } break;
+          
+        case Direction.DOWN: {
+          const nextCol =  last.y + 1;
+          if (nextCol <= this.maxDim) {
+            let neighbour = this.tiles[last.x][nextCol];
+            if (neighbour.directions.includes(Direction.UP)) {
+              this.playerPathFinding(neighbour, Direction.UP);
+            }
+          }
+        } break;
+      }
+    }
   }
 }
 
@@ -591,8 +502,16 @@ class Game {
     const aspect = window.innerWidth / window.innerHeight;
     this.camera = new OrbitCamera(target, aspect, this.labyrinth, this.renderer);
 
-    this.playerTurn = 0;
-    this.gamePhase = GamePhase.SELECT_LANE;
+    this.curPlayerTurn = 0;
+    this.phase = GamePhase.SELECT_LANE;
+
+  }
+  
+  nextRound() {
+    this.labyrinth.pathFoundTiles = [];
+    this.curPlayerTurn++;
+    if (this.curPlayerTurn > 3) this.curPlayerTurn = 0;
+    this.phase = GamePhase.SELECT_LANE;  
   }
 
   render() {

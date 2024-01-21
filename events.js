@@ -1,7 +1,12 @@
-import { GamePhase, LaneAxis, Direction } from "./objects.js";
+import {GamePhase, LaneAxis, Direction } from "./objects.js";
 
 export function selectLaneFromKeyboard(event, game) {
-  switch (event.key) {
+  switch (event.key) {    
+    case " ":
+    case "r": {
+      game.labyrinth.rotateOuterTile();
+    } break;
+      
     case "ArrowUp": {
       if (game.labyrinth.selectedLaneY - 2 > 0) {
         game.labyrinth.selectedLaneY -= 2;
@@ -10,6 +15,7 @@ export function selectLaneFromKeyboard(event, game) {
         game.labyrinth.selectedLaneY = game.labyrinth.dimension - 2;
       }
       game.labyrinth.selectLane(LaneAxis.HORIZONTAL);
+      game.labyrinth.moveOuterTile(-1, game.labyrinth.selectedLaneY);
     } break;
 
     case "ArrowDown": {
@@ -20,6 +26,7 @@ export function selectLaneFromKeyboard(event, game) {
         game.labyrinth.selectedLaneY = 1;
       }
       game.labyrinth.selectLane(LaneAxis.HORIZONTAL);
+      game.labyrinth.moveOuterTile(-1, game.labyrinth.selectedLaneY);
     } break;
 
     case "ArrowLeft": {
@@ -30,6 +37,7 @@ export function selectLaneFromKeyboard(event, game) {
         game.labyrinth.selectedLaneX = game.labyrinth.dimension - 2;
       }
       game.labyrinth.selectLane(LaneAxis.VERTICAL);
+      game.labyrinth.moveOuterTile(game.labyrinth.selectedLaneX, -1);
     } break;
 
     case "ArrowRight": {
@@ -40,6 +48,7 @@ export function selectLaneFromKeyboard(event, game) {
         game.labyrinth.selectedLaneX = 1;
       }
       game.labyrinth.selectLane(LaneAxis.VERTICAL);
+      game.labyrinth.moveOuterTile(game.labyrinth.selectedLaneX, -1);
     } break;
 
     case "Enter": {
@@ -57,15 +66,20 @@ export function selectLaneFromKeyboard(event, game) {
       }
       game.labyrinth.moveOuterTileToEntryPoint();
 
-      game.gamePhase = GamePhase.MOVE_LANE;
+      game.phase = GamePhase.MOVE_LANE;
     } break;
   }
 }
 
 export function moveLaneFromKeyboard(event, game) {
   switch (event.key) {
+    case " ":
+    case "r": {
+      game.labyrinth.rotateOuterTile();
+    } break;
+    
     case "Escape": {
-      game.gamePhase = GamePhase.SELECT_LANE;
+      game.phase = GamePhase.SELECT_LANE;
     } break;
 
     case "ArrowLeft": {
@@ -97,10 +111,11 @@ export function moveLaneFromKeyboard(event, game) {
     } break;
 
     case "Enter": {
+      game.phase = GamePhase.MOVE_PLAYER;
       game.labyrinth.moveLane();
-      //TODO: Player path finding and then GamePhase.MOVE_PLAYER 
-      // Remove these two lines bellow once TODO done
-      game.gamePhase = GamePhase.SELECT_LANE;
+      let curPlayerTile = game.labyrinth.getPlayerTile(game.curPlayerTurn);
+      game.labyrinth.playerPathFinding(curPlayerTile);
+      if (game.labyrinth.pathFoundTiles.length == 1) game.nextRound();
     } break;
   }
 }

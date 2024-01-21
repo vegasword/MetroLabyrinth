@@ -12,7 +12,7 @@ window.addEventListener("resize", function() {
 });
     
 document.addEventListener("keydown", function(event) {
-  switch (game.gamePhase) {
+  switch (game.phase) {      
     case GamePhase.SELECT_LANE:
       EVENTS.selectLaneFromKeyboard(event, game);
       break;
@@ -24,16 +24,17 @@ document.addEventListener("keydown", function(event) {
 });
 
 document.addEventListener("click", function(event) {
-  if (game.gamePhase == GamePhase.MOVE_PLAYER) {
+  if (game.phase == GamePhase.MOVE_PLAYER) {
     let ndc = new THREE.Vector2(
       (event.clientX / window.innerWidth) * 2 - 1,
       -(event.clientY / window.innerHeight) * 2 + 1
     );
-    game.raycaster.setFromCamera(ndc, camera.perspective);
-    const intersects = game.raycaster.intersectObjects(labyrinth.selectedTiles);
+    game.raycaster.setFromCamera(ndc, game.camera.perspective);
+    let intersects = game.raycaster.intersectObjects(game.labyrinth.pathFoundTiles.map(({mesh})=>mesh));
     if (intersects.length > 0) {
-      const tilePosition = intersects[0].object.position;
-      labyrinth.pawns[0].move(tilePosition.x, tilePosition.z);
+      let tilePosition = intersects[0].object.position;
+      game.labyrinth.pawns[game.curPlayerTurn].move(tilePosition.x, tilePosition.z, game.labyrinth.tileOffset);
+      game.nextRound();
     }
   }
 });

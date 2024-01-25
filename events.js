@@ -1,6 +1,7 @@
+import * as THREE from "three";
 import {GamePhase, LaneAxis, Direction } from "./objects.js";
 
-export function selectLaneFromKeyboard(event, game) {
+export function selectLane(event, game) {
   switch (event.key) {    
     case " ":
     case "r": {
@@ -71,7 +72,7 @@ export function selectLaneFromKeyboard(event, game) {
   }
 }
 
-export function moveLaneFromKeyboard(event, game) {
+export function moveLane(event, game) {
   switch (event.key) {
     case " ":
     case "r": {
@@ -113,9 +114,26 @@ export function moveLaneFromKeyboard(event, game) {
     case "Enter": {
       game.phase = GamePhase.MOVE_PLAYER;
       game.labyrinth.moveLane();
-      let curPlayerTile = game.labyrinth.getPlayerTile(game.curPlayerTurn);
-      game.labyrinth.playerPathFinding(curPlayerTile);
+      game.labyrinth.playerPathFinding(game.getPlayerTile());
       if (game.labyrinth.pathFoundTiles.length == 1) game.nextRound();
     } break;
+  }
+}
+
+export function movePlayer(event, game) {
+  if (game.phase == GamePhase.MOVE_PLAYER) {
+    let ndc = new THREE.Vector2(
+      (event.clientX / window.innerWidth) * 2 - 1,
+      -(event.clientY / window.innerHeight) * 2 + 1
+    );
+    game.raycaster.setFromCamera(ndc, game.camera.perspective);
+    
+    const pathFoundTilesMeshes = game.labyrinth.pathFoundTiles.map(({mesh})=>mesh);
+    let intersects = game.raycaster.intersectObjects(pathFoundTilesMeshes);
+    if (intersects.length > 0) {
+      let tilePosition = intersects[0].object.position;
+      game.labyrinth.pawns[game.currentPawn].move(tilePosition.x, tilePosition.z, game.labyrinth.tileOffset);
+      game.nextRound();
+    }
   }
 }

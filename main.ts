@@ -1,7 +1,7 @@
 import { Game, GamePhase } from "./objects.js";
 import * as EVENTS from "./events.js";
 
-let game = new Game();
+let game = new Game(window);
 
 window.addEventListener("resize", function() {
   game.camera.perspective.aspect = window.innerWidth / window.innerHeight;

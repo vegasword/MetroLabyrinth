@@ -2,6 +2,8 @@
 
 A 3D multiplayer game inspired by [Ravensburger's Labyrinth](https://www.ravensburger.us/products/games/family-games/labyrinth-26448/index.html), on the theme of the Paris metro.
 
+![image](https://github.com/vegasword/MetroLabyrinth/assets/66827361/188e7ca8-477a-43b9-93e9-28838eea49c6)
+
 ## How to install
 
 After cloning, you can install and host the game using this command :

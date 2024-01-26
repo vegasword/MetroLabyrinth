@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import {GamePhase, LaneAxis, Direction } from "./objects.js";
+import {Game, GamePhase, LaneAxis, Direction } from "./objects.js";
 
-export function selectLane(event, game) {
+export function selectLane(event : KeyboardEvent, game : Game) {
   switch (event.key) {    
     case " ":
     case "r": {
@@ -72,7 +72,7 @@ export function selectLane(event, game) {
   }
 }
 
-export function moveLane(event, game) {
+export function moveLane(event : KeyboardEvent, game : Game) {
   switch (event.key) {
     case " ":
     case "r": {
@@ -120,7 +120,7 @@ export function moveLane(event, game) {
   }
 }
 
-export function movePlayer(event, game) {
+export function movePlayer(event : MouseEvent, game : Game) {
   if (game.phase == GamePhase.MOVE_PLAYER) {
     let ndc = new THREE.Vector2(
       (event.clientX / window.innerWidth) * 2 - 1,
@@ -132,7 +132,7 @@ export function movePlayer(event, game) {
     let intersects = game.raycaster.intersectObjects(pathFoundTilesMeshes);
     if (intersects.length > 0) {
       let tilePosition = intersects[0].object.position;
-      game.labyrinth.pawns[game.currentPawn].move(tilePosition.x, tilePosition.z, game.labyrinth.tileOffset);
+      game.labyrinth.pawns[game.currentPawn].move(tilePosition.x, tilePosition.z);
       game.nextRound();
     }
   }

@@ -21,6 +21,8 @@ After cloning, you can install and host the game using this command :
 | Choosing the entry point then sliding the lane | <kbd>←</kbd>/<kbd>→</kbd> or <kbd>↑</kbd>/<kbd>↓</kbd> (depending on the direction of the lane you've chosen) then <kbd>⏎</kbd> |
 | Moving your pawn | Just click onto the tile you want to move to (if you can 😃) |
 
+You can press <kbd>SPACE</kbd> or <kbd>R</kbd> to rotate the outer tile.
+
 Feedback and suggestions are welcome!
 
 Enjoy !

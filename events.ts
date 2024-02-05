@@ -120,11 +120,11 @@ export function moveLane(event : KeyboardEvent, game : Game) {
   }
 }
 
-export function movePlayer(event : MouseEvent, game : Game) {
+export function movePlayer(e : MouseEvent, game : Game) {
   if (game.phase == GamePhase.MOVE_PLAYER) {
     let ndc = new THREE.Vector2(
-      (event.clientX / window.innerWidth) * 2 - 1,
-      -(event.clientY / window.innerHeight) * 2 + 1
+      (e.clientX / window.innerWidth) * 2 - 1,
+      -(e.clientY / window.innerHeight) * 2 + 1
     );
     game.raycaster.setFromCamera(ndc, game.camera.perspective);
     
@@ -137,3 +137,18 @@ export function movePlayer(event : MouseEvent, game : Game) {
     }
   }
 }
+
+const plane : THREE.Plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+export function moveOuterTile(e : MouseEvent, game : Game) {
+  if (game.phase == GamePhase.SELECT_LANE) {
+    let ndc = new THREE.Vector2(
+      (e.clientX / window.innerWidth) * 2 - 1,
+      -(e.clientY / window.innerHeight) * 2 + 1
+    );
+    let planeTarget = new THREE.Vector3(0, 0, 0);
+    game.raycaster.setFromCamera(ndc, game.camera.perspective);
+    game.raycaster.ray.intersectPlane(plane, planeTarget);
+    planeTarget.y += 0.1;
+    game.getOuterTile().mesh.position.copy(planeTarget);
+  }
+}  

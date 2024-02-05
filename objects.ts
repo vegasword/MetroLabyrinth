@@ -568,6 +568,22 @@ class Labyrinth {
   }
 }
 
+class OuterTileControls {
+  camera : THREE.Camera
+  raycaster : THREE.Raycaster
+  outerTile : Tile
+  plane : THREE.Plane
+  planeTarget : THREE.Vector3
+
+  constructor(camera : THREE.PerspectiveCamera, raycaster : THREE.Raycaster, outerTile : Tile) {
+    this.camera = camera;
+    this.raycaster = raycaster;
+    this.outerTile = outerTile;
+    this.plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    this.planeTarget = new THREE.Vector3();
+  }
+}
+
 class OrbitCamera {
   perspective : THREE.PerspectiveCamera;
   controller : OrbitControls;
@@ -577,7 +593,8 @@ class OrbitCamera {
     this.perspective = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
     this.controller = new OrbitControls(this.perspective, renderer.domElement);
     this.controller.enablePan = false;
-    this.controller.target = new THREE.Vector3(target, 0, target);
+    this.controller.target = new THREE.Vector3(target, 0, target);    
+    this.controller.mouseButtons = { LEFT: 2, MIDDLE: 1, RIGHT: 0 };
     this.controller.rotateSpeed = 0.5;
     this.controller.maxPolarAngle = 1;
     this.controller.minDistance = labyrinth.dimension;
@@ -597,6 +614,7 @@ class Game {
   
   labyrinth : Labyrinth;
   camera : OrbitCamera;
+  outerTileControls : OuterTileControls
   currentPawn : number;
   phase : GamePhase;
   
@@ -612,6 +630,7 @@ class Game {
 
     const aspect = window.innerWidth / window.innerHeight;
     this.camera = new OrbitCamera(aspect, this.labyrinth, this.renderer);
+    this.outerTileControls = new OuterTileControls(this.camera.perspective, this.raycaster, this.getOuterTile());
 
     this.currentPawn = 0;
     (this.labyrinth.pawns[this.currentPawn].mesh.material as THREE.MeshBasicMaterial).wireframe = true;
@@ -622,6 +641,10 @@ class Game {
     return this.labyrinth.tiles
       [this.labyrinth.pawns[this.currentPawn].x]
       [this.labyrinth.pawns[this.currentPawn].y];
+  }
+
+  getOuterTile() {
+    return this.labyrinth.tiles[this.labyrinth.dimension][0];
   }
   
   nextRound() {

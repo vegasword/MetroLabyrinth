@@ -140,15 +140,19 @@ export function movePlayer(e : MouseEvent, game : Game) {
 
 const plane : THREE.Plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 export function moveOuterTile(e : MouseEvent, game : Game) {
-  if (game.phase == GamePhase.SELECT_LANE) {
-    let ndc = new THREE.Vector2(
-      (e.clientX / window.innerWidth) * 2 - 1,
-      -(e.clientY / window.innerHeight) * 2 + 1
-    );
-    let planeTarget = new THREE.Vector3(0, 0, 0);
-    game.raycaster.setFromCamera(ndc, game.camera.perspective);
-    game.raycaster.ray.intersectPlane(plane, planeTarget);
-    planeTarget.y += 0.1;
-    game.getOuterTile().mesh.position.copy(planeTarget);
-  }
+  let ndc = new THREE.Vector2(
+    (e.clientX / window.innerWidth) * 2 - 1,
+    -(e.clientY / window.innerHeight) * 2 + 1
+  );
+  
+  let planeTarget = new THREE.Vector3(0, 0, 0);
+  game.raycaster.setFromCamera(ndc, game.camera.perspective);
+  game.raycaster.ray.intersectPlane(plane, planeTarget);
+  planeTarget.y += 0.15;
+  
+  let outerTile = game.getOuterTile();
+  outerTile.mesh.position.copy(planeTarget);
+  if (outerTile.treasureId != undefined)
+    game.labyrinth.treasures[outerTile.treasureId].mesh.position.set(
+      outerTile.mesh.position.x, planeTarget.y + 0.1, outerTile.mesh.position.z);
 }  

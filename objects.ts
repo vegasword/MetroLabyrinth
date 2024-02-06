@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 enum GamePhase { "SELECT_LANE", "MOVE_LANE", "MOVE_PLAYER" };
 enum LaneAxis { "VERTICAL", "HORIZONTAL" };
@@ -9,9 +10,9 @@ enum TileType { "STRAIGHT", "CORNER", "TJUNCTION" };
 class Entity {
   x : number;
   y : number;
-  mesh : THREE.Mesh;
+  mesh : THREE.Object3D;
   
-  constructor(x : number, y : number, mesh : THREE.Mesh) {
+  constructor(x : number, y : number, mesh : THREE.Object3D) {
     this.x = x;
     this.y = y; 
     this.mesh = mesh;
@@ -30,15 +31,13 @@ class Treasure extends Entity {
   
   constructor(id : number, x : number, y : number) {        
     let geometry = new THREE.CircleGeometry(0.15, 8);
-    let material = new THREE.MeshBasicMaterial({color: 0x000000});
+    let material = new THREE.MeshBasicMaterial({color: 0xffffff});
     let mesh =  new THREE.Mesh(geometry, material);
     mesh.position.setX(x);
-    mesh.position.setY(0.01);
+    mesh.position.setY(0.1);
     mesh.position.setZ(y);
-    mesh.rotateX(-Math.PI / 2);
-    
+    mesh.rotateX(-Math.PI / 2);    
     super(x, y, mesh);
-    
     this.id = id;
   }
 }
@@ -67,11 +66,7 @@ class Tile extends Entity {
   directions : Direction[];
   
   constructor(x : number, y : number) {    
-    let geometry = new THREE.BoxGeometry(1, 0, 1);
-    let mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial());
-    mesh.position.set(x, 0, y);
-    
-    super(x, y, mesh);
+    super(x, y, new THREE.Object3D());
 
     this.directions = [];
   }
@@ -84,7 +79,7 @@ class Tile extends Entity {
           this.directions[j] = Direction.LEFT;
         }
       }
-      this.mesh.geometry.rotateY(Math.PI / 2);
+      this.mesh.rotateY(Math.PI / 2);
     }
   }
 
@@ -96,7 +91,7 @@ class Tile extends Entity {
           this.directions[j] = Direction.UP;
         }
       }
-      this.mesh.geometry.rotateY(-Math.PI / 2);
+      this.mesh.rotateY(-Math.PI / 2);
     }
   }
 
@@ -123,28 +118,6 @@ class Tile extends Entity {
   setRandomType() {
     this.type = Math.round(Math.random() * TileType.TJUNCTION);
     this.setDefaultDirections(this.type);
-  }
-
-  updateTexture() {
-    switch (this.type) {
-      case TileType.STRAIGHT:
-        this.mesh.material = new THREE.MeshBasicMaterial({
-          map: new THREE.TextureLoader().load("data/straight.jpg")
-        });
-        break;
-
-      case TileType.CORNER:
-        this.mesh.material = new THREE.MeshBasicMaterial({
-          map: new THREE.TextureLoader().load("data/corner.jpg")
-        });
-        break;
-
-      case TileType.TJUNCTION:
-        this.mesh.material = new THREE.MeshBasicMaterial({
-          map: new THREE.TextureLoader().load("data/tjunction.jpg")
-        });
-        break;
-    }
   }
 
   rotateRandomly() {
@@ -235,36 +208,12 @@ class Labyrinth {
       this.tiles[x] = [];
       for (let y = 0; y < this.dimension; ++y) {
         this.tiles[x][y] = new Tile(x, y);
-        scene.add(this.tiles[x][y].mesh);
       }
     }
 
-    this.tiles[0][0].type = TileType.CORNER;
-    this.tiles[0][0].directions = [Direction.RIGHT, Direction.DOWN];
-    this.tiles[0][0].updateTexture();
-
-    this.tiles[0][this.maxDim].type = TileType.CORNER;
-    this.tiles[0][this.maxDim].updateTexture();
-    this.tiles[0][this.maxDim].directions = [Direction.RIGHT, Direction.DOWN];
-    this.tiles[0][this.maxDim].rotateCounterClockwise();
-
-    this.tiles[this.maxDim][0].type = TileType.CORNER;
-    this.tiles[this.maxDim][0].updateTexture();
-    this.tiles[this.maxDim][0].directions = [Direction.RIGHT, Direction.DOWN];
-    this.tiles[this.maxDim][0].rotateClockwise();
-
-    this.tiles[this.maxDim][this.maxDim].type = TileType.CORNER;
-    this.tiles[this.maxDim][this.maxDim].updateTexture();
-    this.tiles[this.maxDim][this.maxDim].directions = [Direction.RIGHT, Direction.DOWN];
-    this.tiles[this.maxDim][this.maxDim].rotateClockwise();
-    this.tiles[this.maxDim][this.maxDim].rotateClockwise();
-
     let outerTile = new Tile(-1, dimension);
     outerTile.setRandomType();
-    outerTile.updateTexture();
-    outerTile.rotateRandomly();
     this.tiles[this.dimension] = [outerTile];
-    scene.add(outerTile.mesh);
 
     this.pawns = [];
     this.pawns.push(new Pawn(0, 0, "red"));
@@ -289,16 +238,7 @@ class Labyrinth {
           if (x % 2 == 0 && y % 2 == 0) {
             this.tiles[x][y].type = TileType.TJUNCTION;
             this.tiles[x][y].setDefaultDirections(TileType.TJUNCTION);
-            this.tiles[x][y].updateTexture();
-            everyTreasuresCoords.push({x: x, y: y});
-
-            if (y == 0) { continue; }
-            if (x == 0) { this.tiles[x][y].rotateCounterClockwise(); continue; }
-            if (y == this.maxDim) { this.tiles[x][y].rotateClockwise(2); continue; }
-            if (x == this.maxDim) { this.tiles[x][y].rotateClockwise(); continue; }
-            if (x < this.hDim && y < this.hDim) { this.tiles[x][y].rotateCounterClockwise(); continue; }
-            if (x < this.hDim && y > this.hDim) { this.tiles[x][y].rotateClockwise(2); continue; }
-            if (x > this.hDim && y > this.hDim) { this.tiles[x][y].rotateClockwise(); continue; }
+            everyTreasuresCoords.push({x: x, y: y})
           } 
           else {
             availableTreasureRandomSlots.push({x: x, y: y});
@@ -325,16 +265,6 @@ class Labyrinth {
       this.pawns[i].remainingTreasures[0] = i * treasuresPerPawn;
     }
 
-    for (let i = 0; i < this.pawns.length; ++i) {
-      for (let j = 0; j < this.pawns[i].remainingTreasures.length; ++j) {
-        const id = this.pawns[i].remainingTreasures[j];
-        (this.treasures[id].mesh.material as THREE.MeshBasicMaterial).color =
-        (this.pawns[i].mesh.material as THREE.MeshBasicMaterial).color;
-      }
-      (this.treasures[this.pawns[i].remainingTreasures[0]]
-       .mesh.material as THREE.MeshBasicMaterial).wireframe = true;
-    }
-
     let randomTiles : TileType[] = [];
     let quotaRandomTiles = {
       [TileType.STRAIGHT]: Math.round(this.dimension * this.dimension / 28 * this.dimension),
@@ -351,18 +281,60 @@ class Labyrinth {
     fillTilesType(TileType.TJUNCTION);
     randomTiles = shuffle(randomTiles);
 
+    const modelsPath = {
+      [TileType.STRAIGHT]: "data/straight.glb",
+      [TileType.CORNER]: "data/corner.glb",
+      [TileType.TJUNCTION]: "data/tjunction.glb",
+    };
+    
+    this.tiles[0][0].type = TileType.CORNER;
+    this.tiles[0][this.maxDim].type = TileType.CORNER;
+    this.tiles[this.maxDim][0].type = TileType.CORNER;
+    this.tiles[this.maxDim][this.maxDim].type = TileType.CORNER;
+    
     let n = 0;
+    let loader = new GLTFLoader();
     for (let x = 0; x < this.dimension; x++) {
       for (let y = 0; y < this.dimension; y++) {
         if (this.tiles[x][y].type == undefined) {
           this.tiles[x][y].type = randomTiles[n];
           this.tiles[x][y].setDefaultDirections(randomTiles[n]);
-          this.tiles[x][y].updateTexture();
-          this.tiles[x][y].rotateRandomly();
           n++;
         }
+        
+        loader.load(modelsPath[this.tiles[x][y].type], (gltf) => {
+          this.tiles[x][y].mesh = gltf.scene;
+          this.tiles[x][y].move(x, y);
+          if ((x != 0 && x != this.maxDim) || (y != 0 && y != this.maxDim)) {
+            if (x % 2 == 0 && y % 2 == 0) {
+              if (y == 0) this.tiles[x][y].rotateClockwise();
+              else if (x == 0) this.tiles[x][y].rotateClockwise(-1);
+              else if (y == this.maxDim) this.tiles[x][y].rotateClockwise(3);
+              else if (x == this.maxDim) this.tiles[x][y].rotateClockwise(2);
+              else if (x < this.hDim && y < this.hDim) this.tiles[x][y].rotateClockwise(-1);
+              else if (x < this.hDim && y > this.hDim) this.tiles[x][y].rotateClockwise(3);
+              else if (x > this.hDim && y < this.hDim) this.tiles[x][y].rotateClockwise();
+              else if (x > this.hDim && y > this.hDim) this.tiles[x][y].rotateClockwise(2);
+            } else {
+              this.tiles[x][y].rotateRandomly();
+            }
+          } else {
+            this.tiles[x][y].directions = [Direction.RIGHT, Direction.DOWN];
+            if (x == 0 && y == this.maxDim) this.tiles[x][y].rotateCounterClockwise();
+            else if (x == this.maxDim && y == 0) this.tiles[this.maxDim][0].rotateClockwise();
+            else if (x == this.maxDim && y == this.maxDim) this.tiles[this.maxDim][this.maxDim].rotateClockwise(2);
+          }
+          
+          scene.add(this.tiles[x][y].mesh);
+        });
       }
     }
+
+    loader.load(modelsPath[outerTile.type], (gltf) => {
+      outerTile.mesh = gltf.scene;
+      outerTile.rotateRandomly();
+      scene.add(outerTile.mesh);    
+    });
   }
 
   selectLane(axis : LaneAxis) {
@@ -557,9 +529,7 @@ class Labyrinth {
     {
       this.pawns[currentPawn].remainingTreasures.shift();
       if (this.pawns[currentPawn].remainingTreasures.length > 0) {
-        (seeked.mesh.material as THREE.MeshBasicMaterial).wireframe = false;      
         this.pawns[currentPawn].remainingTreasures[0] = this.pawns[currentPawn].remainingTreasures[0];
-        (this.treasures[this.pawns[currentPawn].remainingTreasures[0]].mesh.material as THREE.MeshBasicMaterial).wireframe = true;
       } else {
         alert(`Game over ! Player ${currentPawn} wins !`);
         window.location.reload();
@@ -621,9 +591,11 @@ class Game {
   constructor(window : Window) {
     this.window = window;
     this.scene = new THREE.Scene();
+    this.scene.add(new THREE.DirectionalLight());
     this.raycaster = new THREE.Raycaster();
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.setClearColor(0x123456);
     document.body.appendChild(this.renderer.domElement);
 
     this.labyrinth = new Labyrinth(this.scene, 7);
@@ -633,7 +605,6 @@ class Game {
     this.outerTileControls = new OuterTileControls(this.camera.perspective, this.raycaster, this.getOuterTile());
 
     this.currentPawn = 0;
-    (this.labyrinth.pawns[this.currentPawn].mesh.material as THREE.MeshBasicMaterial).wireframe = true;
     this.phase = GamePhase.SELECT_LANE;
   }
   
@@ -650,12 +621,8 @@ class Game {
   nextRound() {
     this.labyrinth.checkPlayerTreasures(this.currentPawn, this.window);
     this.labyrinth.pathFoundTiles = [];
-    (this.labyrinth.pawns[this.currentPawn].mesh.material as THREE.MeshBasicMaterial)
-      .wireframe = false;
     this.currentPawn++;
     if (this.currentPawn > 3) this.currentPawn = 0;
-    (this.labyrinth.pawns[this.currentPawn].mesh.material as THREE.MeshBasicMaterial)
-      .wireframe = true;
     this.phase = GamePhase.SELECT_LANE;  
   }
 

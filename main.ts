@@ -1,16 +1,9 @@
 import { Game, GamePhase } from "./objects.js";
 import * as EVENTS from "./events.js";
 
-//TODO: Instanced based GLTF meshes rendering
-// https://threejs.org/docs/#examples/en/loaders/GLTFLoader
+//TODO: Instanced based rendering
+// https://threejs.org/docs/?q=scene#examples/en/utils/SceneUtils.createMeshesFromInstancedMesh
 // https://github.com/mrdoob/three.js/blob/master/examples/webgl_instancing_performance.html
-
-// import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-
-// let models : any[] = [];
-// new GLTFLoader().load("data/straight.glb", (gltf) => models.push({name:"straight", geom: gltf.scene}));
-// new GLTFLoader().load("data/corner.glb", (gltf) => models.push({name:"corner", geom: gltf.scene}));
-// new GLTFLoader().load("data/tjunction.glb", (gltf) => models.push({name:"tjunction", geom: gltf.scene}));
 
 let game = new Game(window);
 
@@ -25,12 +18,17 @@ document.addEventListener("keydown", function(event) {
   switch (game.phase) {
     case GamePhase.SELECT_LANE: EVENTS.selectLane(event, game); break;
     case GamePhase.MOVE_LANE: EVENTS.moveLane(event, game); break;
+    default: break;
   }
 });
 
-document.addEventListener("click", (e) => EVENTS.movePlayer(e, game));
+document.addEventListener("click", (e) => {
+  if (game.phase == GamePhase.MOVE_PLAYER) EVENTS.movePlayer(e, game);
+});
 
-document.addEventListener("mousemove", (e) => EVENTS.moveOuterTile(e, game));
+document.addEventListener("mousemove", (e) => {
+  if (game.phase == GamePhase.SELECT_LANE) EVENTS.moveOuterTile(e, game);
+});
 
 function render() {
   requestAnimationFrame(render);

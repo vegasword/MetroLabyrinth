@@ -8,29 +8,26 @@ export function moveTile(e : MouseEvent, game : Game) {
     -(e.clientY / window.innerHeight) * 2 + 1
   );
   
-  let planeTarget = new THREE.Vector3(0, 0, 0);
+  let outerTilePosition = game.labyrinth.tiles[game.labyrinth.dim][0].mesh.position;
+  let outerTileTarget = new THREE.Vector3(0, 0, 0);
   game.raycaster.setFromCamera(ndc, game.camera.perspective);
-  game.raycaster.ray.intersectPlane(plane, planeTarget);
-  planeTarget.y += 0.15;
+  game.raycaster.ray.intersectPlane(plane, outerTileTarget);
+  outerTileTarget.y += 0.15;
   
-  let outerTile = game.getOuterTile();
-  outerTile.mesh.position.copy(planeTarget);
-  if (outerTile.treasureId != undefined) {
-    game.labyrinth.treasures[outerTile.treasureId].mesh.position.set(
-      outerTile.mesh.position.x, planeTarget.y + 0.1, outerTile.mesh.position.z);
-  }
-
   if (game.phase == GamePhase.PLACE_TILE) {
     if (game.currentEntry == undefined) {
       for (let entryPoint of game.labyrinth.entryPoints) {
-        if (outerTile.mesh.position.distanceTo(entryPoint) < 1) {
+        if (outerTileTarget.distanceTo(entryPoint) < 1 &&
+            game.currentEntry != entryPoint)
+        {
+          game.outerTileLerpTimer.start();
           game.currentEntry = entryPoint;
-          game.time.start();
           break;
         }
       }
-    } else if (outerTile.mesh.position.distanceTo(game.currentEntry) > 1) {
-      game.time.stop();
+    } else if (outerTileTarget.distanceTo(game.currentEntry) > 1.5 &&
+       outerTilePosition.distanceTo(game.currentEntry) < 0.01) 
+    {
       game.currentEntry = undefined;
     }
   }
@@ -41,11 +38,15 @@ export function rotateTile(event : KeyboardEvent, game : Game) {
 }
   
 export function placeTile(event : MouseEvent, game : Game) {
-  if (event.button == 0) {
-    game.phase = GamePhase.MOVE_PLAYER;
+  if (event.button == 0 && game.currentEntry) {
     game.labyrinth.moveLane();
     game.labyrinth.playerPathFinding(game.getPlayerTile());
-    if (game.labyrinth.pathFoundTiles.length == 1) game.nextRound();
+    if (game.labyrinth.pathFoundTiles.length == 1) {
+      game.nextRound();
+      game.phase = GamePhase.PLACE_TILE;
+    } else {
+      game.phase = GamePhase.MOVE_PLAYER;
+    }
   }
 }
 
@@ -62,6 +63,7 @@ export function movePlayer(e : MouseEvent, game : Game) {
     if (intersects.length > 0) {
       let tilePosition = intersects[0].object.position;
       game.labyrinth.pawns[game.currentPawn].move(tilePosition.x, tilePosition.z);
+      game.phase = GamePhase.PLACE_TILE;
       game.nextRound();
     }
   }

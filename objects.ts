@@ -10,6 +10,7 @@ enum Rotation {"CLOCKWISE" = -1,"COUNTERCLOCKWISE" = 1};
 class Entity {
   x : number;
   y : number;
+  moving : boolean
   mesh : THREE.Object3D;
   
   constructor(x : number, y : number, mesh : THREE.Object3D) {
@@ -18,11 +19,16 @@ class Entity {
     this.mesh = mesh;
   }
 
-  move(x : number, y : number) {
+  move(x : number, y : number, animated : boolean = true) {
     this.x = x;
-    this.y = y;
-    this.mesh.position.setX(x);
-    this.mesh.position.setZ(y);
+    this.y = y;    
+    
+    if (animated) {
+      this.moving = true;
+    } else {
+      this.mesh.position.setX(x);
+      this.mesh.position.setZ(y);
+    }
   }
 }
 
@@ -37,6 +43,7 @@ class Treasure extends Entity {
     mesh.position.setY(0.1);
     mesh.position.setZ(y);
     mesh.rotateX(-Math.PI / 2);    
+    
     super(x, y, mesh);
     this.id = id;
   }
@@ -54,7 +61,6 @@ class Pawn extends Entity {
     mesh.position.set(x, geometry.parameters.length, y);
     
     super(x, y, mesh);
-    
     this.remainingTreasures = [];
     this.hasMoved = false;
   }
@@ -284,7 +290,7 @@ class Labyrinth {
             if (child.type == "Mesh") this.tiles[x][y].mesh = child;
           });
           
-          this.tiles[x][y].move(x, y);
+          this.tiles[x][y].move(x, y, false);
           
           if ((x != 0 && x != this.maxDim) || (y != 0 && y != this.maxDim)) {
             if (x % 2 == 0 && y % 2 == 0) {
@@ -319,7 +325,7 @@ class Labyrinth {
       gltf.scene.traverse((child) => {
         if (child.type == "Mesh") outerTile.mesh = child;
       });
-      outerTile.move(-1, 1);
+      outerTile.move(-1, 1, false);
       outerTile.rotateRandomly();
       scene.add(outerTile.mesh);    
     });
@@ -535,6 +541,33 @@ class OrbitCamera {
   }
 }
 
+class MoveAnimation {
+  entity : Entity;
+  target : THREE.Vector3;
+  speed : number;
+  done : boolean;
+  
+  _clock : THREE.Clock;
+
+  constructor(entity : Entity, speed : number = 3) {
+    this.entity = entity;
+    this.target = new THREE.Vector3(entity.x, entity.mesh.position.y, entity.y);
+    this.speed = speed;
+    this._clock = new THREE.Clock(true);
+  }
+
+  update() {
+    let alpha =
+      THREE.MathUtils.clamp(this.speed * this._clock.getElapsedTime(), 0, 1);
+    if (Math.round(alpha) < 1) { 
+      this.entity.mesh.position.lerp(this.target, alpha);
+    } else {
+      this.done = true; 
+      this.entity.mesh.position.copy(this.target);
+    }
+  }
+}
+
 class Game {
   window : Window;
   scene : THREE.Scene;
@@ -542,10 +575,12 @@ class Game {
   renderer : THREE.WebGLRenderer;
   
   labyrinth : Labyrinth;
+  entities : Entity[];
+  moveAnimations : MoveAnimation[]
+  
   camera : OrbitCamera;
   outerTileLerpTimer : THREE.Clock;
   
-  currentEntry? : THREE.Vector3  
   currentPawn : number;
   phase : GamePhase;
     
@@ -567,6 +602,14 @@ class Game {
     this.currentPawn = 0;
     this.phase = GamePhase.PLACE_TILE;
     this.outerTileLerpTimer = new THREE.Clock(false);
+    
+    this.entities = [
+      ...this.labyrinth.tiles.flat(), 
+      ...this.labyrinth.pawns, 
+      ...this.labyrinth.treasures
+    ];
+    
+    this.moveAnimations = [];
   }
   
   getPlayerTile() {
@@ -582,32 +625,26 @@ class Game {
     if (this.currentPawn > 3) this.currentPawn = 0;
   }
 
-  moveOuterTileToNearestEntryPoint() {
-    if (this.currentEntry != undefined) {
-      const speed = 3;
-      let alpha = THREE.MathUtils.clamp(
-        speed * this.outerTileLerpTimer.getElapsedTime(), 0, 1);
-      
-      let outerTile = this.labyrinth.tiles[this.labyrinth.dim][0];
-      outerTile.mesh.position.lerp(this.currentEntry, alpha);
-      if (outerTile.treasureId != undefined) {
-        this.labyrinth.treasures[outerTile.treasureId].mesh.position.set(
-          outerTile.mesh.position.x, 
-          outerTile.mesh.position.y + 0.2,
-          outerTile.mesh.position.z
-        );
+  updateMoveAnimations() {
+    for (let entity of this.entities) {
+      if (entity.moving) {
+        this.moveAnimations.push(new MoveAnimation(entity));
+        entity.moving = false;
       }
-      
-      this.labyrinth.selectLane(this.currentEntry);
-    } else {
-      this.outerTileLerpTimer.start();
     }
+    
+    this.moveAnimations.forEach((animation) => {
+      if (!animation.done) {
+        animation.update()
+      } else {
+        const index = this.moveAnimations.indexOf(animation, 0);
+        if (index > -1) this.moveAnimations.splice(index, 1);
+      }
+    });    
   }
-  
+
   update() {
-    if (this.phase == GamePhase.PLACE_TILE) {
-      this.moveOuterTileToNearestEntryPoint();
-    }
+    this.updateMoveAnimations();
   }
   
   render() {

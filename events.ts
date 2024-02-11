@@ -8,37 +8,31 @@ export function moveTile(e : MouseEvent, game : Game) {
     -(e.clientY / window.innerHeight) * 2 + 1
   );
   
-  let outerTilePosition = game.labyrinth.tiles[game.labyrinth.dim][0].mesh.position;
+  let outerTile = game.labyrinth.tiles[game.labyrinth.dim][0];
   let outerTileTarget = new THREE.Vector3(0, 0, 0);
   game.raycaster.setFromCamera(ndc, game.camera.perspective);
   game.raycaster.ray.intersectPlane(plane, outerTileTarget);
   outerTileTarget.y += 0.15;
   
   if (game.phase == GamePhase.PLACE_TILE) {
-    if (game.currentEntry == undefined) {
-      for (let entryPoint of game.labyrinth.entryPoints) {
-        if (outerTileTarget.distanceTo(entryPoint) < 1 &&
-            game.currentEntry != entryPoint)
-        {
-          game.outerTileLerpTimer.start();
-          game.currentEntry = entryPoint;
-          break;
-        }
+    for (let entryPoint of game.labyrinth.entryPoints) {
+      if (outerTileTarget.distanceTo(entryPoint) < 1)
+      {
+        outerTile.move(entryPoint.x, entryPoint.z);
+        game.labyrinth.moveTreasureIfExists(outerTile, entryPoint.x, entryPoint.z);
+        game.labyrinth.selectLane(entryPoint);
+        return;
       }
-    } else if (outerTileTarget.distanceTo(game.currentEntry) > 1.5 &&
-       outerTilePosition.distanceTo(game.currentEntry) < 0.01) 
-    {
-      game.currentEntry = undefined;
     }
   }
-}  
+}
   
 export function rotateTile(event : KeyboardEvent, game : Game) {
   if (event.key == " " || event.key == 'r') game.labyrinth.rotateOuterTile();
 }
   
 export function placeTile(event : MouseEvent, game : Game) {
-  if (event.button == 0 && game.currentEntry) {
+  if (event.button == 0) {
     game.labyrinth.moveLane();
     game.labyrinth.playerPathFinding(game.getPlayerTile());
     if (game.labyrinth.pathFoundTiles.length == 1) {

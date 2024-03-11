@@ -11,15 +11,22 @@ window.addEventListener("resize", function() {
 });
     
 document.addEventListener("keydown", function(event) {
-  switch (game.phase) {      
-    case GamePhase.SELECT_LANE: EVENTS.selectLane(event, game); break;
-    case GamePhase.MOVE_LANE: EVENTS.moveLane(event, game); break;    
+  if (game.phase == GamePhase.PLACE_TILE) EVENTS.rotateTile(event, game);
+});
+
+document.addEventListener("click", (event) => {
+  switch (game.phase) {
+    case GamePhase.PLACE_TILE: EVENTS.placeTile(event, game); break;
+    case GamePhase.MOVE_PLAYER: EVENTS.movePlayer(event, game); break;
   }
 });
 
-document.addEventListener("click", (event) => EVENTS.movePlayer(event, game));
+document.addEventListener("mousemove", (e) => {
+  if (game.phase == GamePhase.PLACE_TILE) EVENTS.moveTile(e, game);
+});
 
 function render() {
   requestAnimationFrame(render);
+  game.update();
   game.render();
 } render();

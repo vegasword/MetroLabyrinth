@@ -1,130 +1,54 @@
 import * as THREE from "three";
-import {Game, GamePhase, LaneAxis, Direction } from "./objects.js";
+import {Game, GamePhase } from "./objects.js";
 
-export function selectLane(event : KeyboardEvent, game : Game) {
-  switch (event.key) {    
-    case " ":
-    case "r": {
-      game.labyrinth.rotateOuterTile();
-    } break;
-      
-    case "ArrowUp": {
-      if (game.labyrinth.selectedLaneY - 2 > 0) {
-        game.labyrinth.selectedLaneY -= 2;
-      }
-      else {
-        game.labyrinth.selectedLaneY = game.labyrinth.dimension - 2;
-      }
-      game.labyrinth.selectLane(LaneAxis.HORIZONTAL);
-      game.labyrinth.moveOuterTile(-1, game.labyrinth.selectedLaneY);
-    } break;
-
-    case "ArrowDown": {
-      if (game.labyrinth.selectedLaneY + 2 < game.labyrinth.dimension) {
-        game.labyrinth.selectedLaneY += 2;
-      }
-      else {
-        game.labyrinth.selectedLaneY = 1;
-      }
-      game.labyrinth.selectLane(LaneAxis.HORIZONTAL);
-      game.labyrinth.moveOuterTile(-1, game.labyrinth.selectedLaneY);
-    } break;
-
-    case "ArrowLeft": {
-      if (game.labyrinth.selectedLaneX - 2 > 0) {
-        game.labyrinth.selectedLaneX -= 2;
-      }
-      else {
-        game.labyrinth.selectedLaneX = game.labyrinth.dimension - 2;
-      }
-      game.labyrinth.selectLane(LaneAxis.VERTICAL);
-      game.labyrinth.moveOuterTile(game.labyrinth.selectedLaneX, -1);
-    } break;
-
-    case "ArrowRight": {
-      if (game.labyrinth.selectedLaneX + 2 < game.labyrinth.dimension) {
-        game.labyrinth.selectedLaneX += 2;
-      }
-      else {
-        game.labyrinth.selectedLaneX = 1;
-      }
-      game.labyrinth.selectLane(LaneAxis.VERTICAL);
-      game.labyrinth.moveOuterTile(game.labyrinth.selectedLaneX, -1);
-    } break;
-
-    case "Enter": {
-      if (game.labyrinth.selectionAxis == LaneAxis.VERTICAL &&
-          game.labyrinth.laneEntryPoint != Direction.UP  &&
-          game.labyrinth.laneEntryPoint != Direction.DOWN) 
+const plane : THREE.Plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+export function moveTile(e : MouseEvent, game : Game) {      
+  let ndc = new THREE.Vector2(
+    (e.clientX / window.innerWidth) * 2 - 1,
+    -(e.clientY / window.innerHeight) * 2 + 1
+  );
+  
+  let outerTile = game.labyrinth.tiles[game.labyrinth.dim][0];
+  let outerTileTarget = new THREE.Vector3(0, 0, 0);
+  game.raycaster.setFromCamera(ndc, game.camera.perspective);
+  game.raycaster.ray.intersectPlane(plane, outerTileTarget);
+  outerTileTarget.y += 0.15;
+  
+  if (game.phase == GamePhase.PLACE_TILE) {
+    for (let entryPoint of game.labyrinth.entryPoints) {
+      if (outerTileTarget.distanceTo(entryPoint) < 1)
       {
-        game.labyrinth.laneEntryPoint = Direction.UP
+        outerTile.move(entryPoint.x, entryPoint.z);
+        game.labyrinth.moveTreasureIfExists(outerTile, entryPoint.x, entryPoint.z);
+        game.labyrinth.selectLane(entryPoint);
+        return;
       }
-      else if (game.labyrinth.selectionAxis == LaneAxis.HORIZONTAL &&
-               game.labyrinth.laneEntryPoint != Direction.LEFT  &&
-               game.labyrinth.laneEntryPoint != Direction.RIGHT)
-      {
-        game.labyrinth.laneEntryPoint = Direction.LEFT
-      }
-      game.labyrinth.moveOuterTileToEntryPoint();
-
-      game.phase = GamePhase.MOVE_LANE;
-    } break;
+    }
   }
 }
-
-export function moveLane(event : KeyboardEvent, game : Game) {
-  switch (event.key) {
-    case " ":
-    case "r": {
-      game.labyrinth.rotateOuterTile();
-    } break;
-    
-    case "Escape": {
-      game.phase = GamePhase.SELECT_LANE;
-    } break;
-
-    case "ArrowLeft": {
-      if (game.labyrinth.selectionAxis == LaneAxis.HORIZONTAL) {
-        game.labyrinth.laneEntryPoint = Direction.LEFT;
-        game.labyrinth.moveOuterTileToEntryPoint();
-      }
-    } break;
-
-    case "ArrowRight": {
-      if (game.labyrinth.selectionAxis == LaneAxis.HORIZONTAL) {
-        game.labyrinth.laneEntryPoint = Direction.RIGHT;
-        game.labyrinth.moveOuterTileToEntryPoint();
-      }
-    } break;
-
-    case "ArrowUp": {
-      if (game.labyrinth.selectionAxis == LaneAxis.VERTICAL) {
-        game.labyrinth.laneEntryPoint = Direction.UP;
-        game.labyrinth.moveOuterTileToEntryPoint();
-      }
-    } break;
-
-    case "ArrowDown": {
-      if (game.labyrinth.selectionAxis == LaneAxis.VERTICAL) {
-        game.labyrinth.laneEntryPoint = Direction.DOWN;
-        game.labyrinth.moveOuterTileToEntryPoint();
-      }
-    } break;
-
-    case "Enter": {
+  
+export function rotateTile(event : KeyboardEvent, game : Game) {
+  if (event.key == " " || event.key == 'r') game.labyrinth.rotateOuterTile();
+}
+  
+export function placeTile(event : MouseEvent, game : Game) {
+  if (event.button == 0) {
+    game.labyrinth.moveLane();
+    game.labyrinth.playerPathFinding(game.getPlayerTile());
+    if (game.labyrinth.pathFoundTiles.length == 1) {
+      game.nextRound();
+      game.phase = GamePhase.PLACE_TILE;
+    } else {
       game.phase = GamePhase.MOVE_PLAYER;
-      game.labyrinth.moveLane();
-      game.labyrinth.playerPathFinding(game.getPlayerTile());
-      if (game.labyrinth.pathFoundTiles.length == 1) game.nextRound();
-    } break;
+    }
   }
 }
 
-export function movePlayer(event : MouseEvent, game : Game) {
-  if (game.phase == GamePhase.MOVE_PLAYER) {
+export function movePlayer(e : MouseEvent, game : Game) {
+  if (e.button == 0) {
     let ndc = new THREE.Vector2(
-      (event.clientX / window.innerWidth) * 2 - 1,
-      -(event.clientY / window.innerHeight) * 2 + 1
+      (e.clientX / window.innerWidth) * 2 - 1,
+      -(e.clientY / window.innerHeight) * 2 + 1
     );
     game.raycaster.setFromCamera(ndc, game.camera.perspective);
     
@@ -133,6 +57,7 @@ export function movePlayer(event : MouseEvent, game : Game) {
     if (intersects.length > 0) {
       let tilePosition = intersects[0].object.position;
       game.labyrinth.pawns[game.currentPawn].move(tilePosition.x, tilePosition.z);
+      game.phase = GamePhase.PLACE_TILE;
       game.nextRound();
     }
   }

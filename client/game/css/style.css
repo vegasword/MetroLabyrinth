@@ -1,0 +1,326 @@
+@import url("/home/css/animation.css");
+
+:root {
+  --button-color: #990e41;
+  --background-color: white;
+  --text-color: black;
+  --border-color: rgba(0, 0, 0, 0.3);
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  margin: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+  height: 100vh;
+  color: var(--text-color);
+  overflow: hidden;
+}
+
+main {
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+  width: 100%;
+}
+
+.darken {
+  filter: brightness(0.5) !important;
+}
+
+#howToPlay-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  margin: auto;
+  z-index: 1000;
+  width: 800px;
+  height: 500px;
+  background: var(--background-color);
+  border-radius: 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 50px 100px -20px,
+    rgba(0, 0, 0, 0.3) 0px 30px 60px -30px,
+    rgba(10, 37, 64, 0.35) 0px -2px 6px 0px inset;
+}
+
+#howToPlay-popup .container {
+  width: 800px;
+  height: 500px;
+  background: var(--background-color);
+  border-radius: 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 50px 100px -20px,
+    rgba(0, 0, 0, 0.3) 0px 30px 60px -30px,
+    rgba(10, 37, 64, 0.35) 0px -2px 6px 0px inset;
+  opacity: 0;
+}
+
+#howToPlay-popup .button {
+  width: 100px;
+  height: 40px;
+  line-height: 40px;
+  background: var(--button-color);
+  color: var(--background-color);
+  font-size: 16px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  vertical-align: middle;
+  text-align: center;
+}
+
+#howToPlay {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  color: var(--background-color);
+  font-size: 30px;
+  cursor: pointer;
+  text-shadow: 0px 0px 5px rgba(0, 0, 0, 1);
+  z-index: 1000;
+}
+
+#howToPlay-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  width: 500px;
+  height: 0;
+  position: absolute;
+  top: 40px;
+  right: 40px;
+  background: var(--background-color);
+  color: black;
+  font-size: 20px;
+  border-radius: 10px;
+  opacity: 0;
+  transition: opacity 0.2s, height 0s 0.2s; /* Added transition-delay to height */
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+  overflow: hidden;
+  z-index: 1000;
+}
+
+#howToPlay:hover + #howToPlay-content {
+  height: 400px;
+  opacity: 1;
+  transition: opacity 0.3s 0.2s, height 0s; /* Removed transition-delay from height */
+}
+
+#sidebar {
+  width: 20vw;
+  height: 100%;
+  background: var(--background-color);
+  display: flex;
+  flex-direction: column;
+  border-right: solid 1px var(--border-color);
+}
+
+#sidebar h1 {
+  text-align: center;
+  margin: 0;
+  padding: 10px;
+  height: fit-content;
+}
+
+#sidebar #listOfPlayers {
+  height: fit-content;
+}
+
+#sidebar #listOfPlayers .objectives {
+  padding: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+#sidebar #listOfPlayers .objectives h2 {
+  margin: 0;
+  padding: 0;
+  font-size: 20px;
+  width: fit-content;
+}
+
+#sidebar #listOfPlayers > .objectives:not(:last-child) {
+  border-bottom: solid 1px var(--border-color);
+}
+
+#sidebar #listOfPlayers .objectives .line {
+  height: 8px;
+  width: fit-content;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  margin: 15px 0 10px 0;
+}
+
+#sidebar #listOfPlayers .objectives .line .stop {
+  width: 16px;
+  height: 16px;
+  border-radius: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: white;
+  border: solid 4px black;
+}
+
+#sidebar #listOfPlayers .objectives .line > .stop:not(:last-child) {
+  margin-right: 20px;
+}
+
+#sidebar #listOfPlayers .red {
+  background: #b70b4b;
+}
+
+#sidebar #listOfPlayers .blue {
+  background: #0070b7;
+}
+
+#sidebar #listOfPlayers .green {
+  background: #7bc698;
+}
+
+#sidebar #listOfPlayers .yellow {
+  background: #ffcc0c;
+}
+
+#sidebar #chat {
+  flex: 1;
+  overflow-y: auto;
+}
+
+#sidebar #chat .messages {
+  height: calc(100% - 60px);
+  padding: 10px;
+  overflow-y: scroll;
+  background: var(--background-color);
+}
+
+#sidebar #chat #sendMessage {
+  border-top: solid 1px var(--border-color);
+  display: flex;
+  justify-content: center;
+  height: 40px;
+  align-items: center;
+}
+
+#sidebar #chat #sendMessage input {
+  width: 80%;
+  height: 100%;
+  border: none;
+  padding: 0 10px;
+  font-size: 20px;
+  background: white;
+}
+
+#sidebar #chat #sendMessage input:focus {
+  outline: none;
+}
+
+#sidebar #chat #sendMessage button {
+  width: 20%;
+  height: 100%;
+  border: none;
+  background: var(--button-color);
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+#sidebar > * {
+  border-bottom: solid 2px var(--border-color);
+}
+
+#labyrinth {
+  position: relative;
+  width: 80vw;
+  height: 100vh;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 1) 20%,
+    rgba(200, 204, 205, 1) 100%
+  );
+}
+
+#timer {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-size: 20px;
+  color: var(--text-color);
+  z-index: 1000;
+  padding: 10px;
+  background: var(--background-color);
+  border-radius: 5px;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+}
+
+#skip {
+  margin-left: 10px;
+  border-left: solid 2px var(--border-color);
+  padding-left: 10px;
+  height: 100%;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+}
+
+/* @media (prefers-color-scheme: dark) {
+  :root {
+    --button-color: #53dda9;
+    --background-color: #494949;
+    --text-color: white;
+    --border-color: rgba(255, 255, 255, 0.6);
+  }
+
+  #sidebar #chat #sendMessage input {
+    background: rgb(155, 155, 155);
+    color: white;
+  }
+
+  #sidebar #chat #sendMessage button {
+    color: black;
+  }
+} */
+
+#chat .messages {
+  height: calc(
+    100% - 100px
+  ); /* Adjusted height to make room for the input form */
+}
+
+/*CSS FOR CHAT*/
+#chat #sendMessageForm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+#chat #sendMessageForm input {
+  flex-grow: 1;
+}
+
+#chat #sendMessageForm button {
+  margin-left: 5px;
+}

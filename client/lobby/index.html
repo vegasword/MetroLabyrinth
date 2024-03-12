@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="style.css" />
+    <title>Lobby - Metro Labyrinth</title>
+  </head>
+
+  <body>
+    <main id="main">
+      <form id="join" action="">
+        <label for="username">
+          Nom d'utilisateur
+          <input type="text" id="usernameJoin" name="username" required />
+        </label>
+        <label for="roomId">
+          Identifiant de la salle
+          <input type="text" id="roomId" name="roomId" required />
+        </label>
+        <button type="submit">Rejoindre la salle</button>
+      </form>
+      <form id="create" action="">
+        <label for="username">
+          Nom d'utilisateur
+          <input type="text" id="usernameCreate" name="username" required />
+        </label>
+        <button type="submit">Créer une nouvelle salle</button>
+      </form>
+    </main>
+    <script
+      src="https://cdn.socket.io/4.7.4/socket.io.min.js"
+      integrity="sha384-Gr6Lu2Ajx28mzwyVR8CFkULdCU7kMlZ9UthllibdOSo6qAiN+yXNHqtgdTvFXMT4"
+      crossorigin="anonymous"
+    ></script>
+    <script type="module" src="main.js"></script>
+  </body>
+</html>

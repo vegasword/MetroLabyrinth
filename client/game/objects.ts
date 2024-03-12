@@ -2,6 +2,8 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
+const gameViewport = document.getElementById("labyrinth")!;
+
 enum GamePhase {"PLACE_TILE", "MOVE_PLAYER"};
 enum Direction {"UP", "RIGHT", "DOWN", "LEFT"};
 enum TileType {"STRAIGHT", "CORNER", "TJUNCTION"};
@@ -589,14 +591,13 @@ class Game {
     this.scene = new THREE.Scene();
     this.scene.add(new THREE.DirectionalLight());
     this.raycaster = new THREE.Raycaster();
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setClearColor(0x123456);
-    document.body.appendChild(this.renderer.domElement);
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    this.renderer.setSize(gameViewport.clientWidth, window.innerHeight);
+    gameViewport.appendChild(this.renderer.domElement);
 
     this.labyrinth = new Labyrinth(this.scene, 7);
 
-    const aspect = window.innerWidth / window.innerHeight;
+    const aspect = gameViewport.clientWidth / window.innerHeight;
     this.camera = new OrbitCamera(aspect, this.labyrinth, this.renderer);
 
     this.currentPawn = 0;

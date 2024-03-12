@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="css/style.css" />
+    <link
+      rel="stylesheet"
+      href="https://site-assets.fontawesome.com/releases/v6.5.1/css/all.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.2/socket.io.js"></script>
+    <script src="chat.js"></script>
+
+    <script type="module" src="main.ts"></script>
+    <title>Metro Labyrinth</title>
+  </head>
+  <body>
+    <popup id="howToPlay-popup" class="fadeFromTopOpacity">
+      <h1>Comment jouer ?</h1>
+      <p>
+        <strong>But du jeu :</strong> Revenir au point de départ en ayant
+        récupéré tout ses trésors
+      </p>
+      <p>
+        <strong>Commandes :</strong><br />
+        Utilisez les flèches directionnelles pour déplacer les tuiles. <br />
+        Utilisez la touche "Espace" pour tourner la tuile. <br />
+        Utilisez entrée pour valider votre choix.
+      </p>
+      <div id="understoodButton" class="button">J'ai compris</div>
+    </popup>
+    <main class="darken">
+      <i class="fa-solid fa-square-question" id="howToPlay"></i>
+      <div id="howToPlay-content">
+        <h1>Comment jouer ?</h1>
+        <p>
+          <strong>But du jeu :</strong> Revenir au point de départ en ayant
+          récupéré tout ses trésors
+        </p>
+        <p>
+          <strong>Commandes :</strong><br />
+          Utilisez les flèches directionnelles pour déplacer les tuiles. <br />
+          Utilisez la touche "Espace" pour tourner la tuile. <br />
+          Utilisez entrée pour valider votre choix.
+        </p>
+      </div>
+      <div id="sidebar">
+        <h1>Metro Labyrinth</h1>
+        <div id="listOfPlayers">
+          <div class="objectives">
+            <h2>Username</h2>
+            <div class="line red">
+              <div class="stop"></div>
+              <div class="stop"></div>
+              <div class="stop"></div>
+              <div class="stop"></div>
+              <div class="stop"></div>
+            </div>
+          </div>
+          <div class="objectives">
+            <h2>Username</h2>
+            <div class="line blue">
+              <div class="stop"></div>
+              <div class="stop"></div>
+              <div class="stop"></div>
+              <div class="stop"></div>
+              <div class="stop"></div>
+            </div>
+          </div>
+          <div class="objectives">
+            <h2>Username</h2>
+            <div class="line green">
+              <div class="stop"></div>
+              <div class="stop"></div>
+              <div class="stop"></div>
+              <div class="stop"></div>
+              <div class="stop"></div>
+            </div>
+          </div>
+          <div class="objectives">
+            <h2>Username</h2>
+            <div class="line yellow">
+              <div class="stop"></div>
+              <div class="stop"></div>
+              <div class="stop"></div>
+              <div class="stop"></div>
+              <div class="stop"></div>
+            </div>
+          </div>
+        </div>
+        <div id="chat">
+          <div class="messages"></div>
+          <form id="sendMessageForm">
+            <input type="text" id="messageInput" />
+            <button type="submit">
+              <i class="fa-solid fa-paper-plane-top"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+      <div id="labyrinth">
+        <div id="timer">
+          <div>
+            <i class="fa-solid fa-hourglass-clock"></i>
+            <span>01:00</span>
+          </div>
+          <i class="fa-solid fa-forward" id="skip"></i>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

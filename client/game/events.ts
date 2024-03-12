@@ -1,11 +1,13 @@
 import * as THREE from "three";
 import {Game, GamePhase } from "./objects.js";
 
+const gameViewport = document.getElementById("labyrinth")!;
+
 const plane : THREE.Plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 export function moveTile(e : MouseEvent, game : Game) {      
   let ndc = new THREE.Vector2(
-    (e.clientX / window.innerWidth) * 2 - 1,
-    -(e.clientY / window.innerHeight) * 2 + 1
+    (e.clientX / gameViewport.clientWidth) * 2 - 1.5,
+    -(e.clientY / gameViewport.clientHeight) * 2 + 1
   );
   
   let outerTile = game.labyrinth.tiles[game.labyrinth.dim][0];
@@ -47,8 +49,8 @@ export function placeTile(event : MouseEvent, game : Game) {
 export function movePlayer(e : MouseEvent, game : Game) {
   if (e.button == 0) {
     let ndc = new THREE.Vector2(
-      (e.clientX / window.innerWidth) * 2 - 1,
-      -(e.clientY / window.innerHeight) * 2 + 1
+      (e.clientX / gameViewport.clientWidth) * 2 - 1.5,
+      -(e.clientY / gameViewport.clientHeight) * 2 + 1
     );
     game.raycaster.setFromCamera(ndc, game.camera.perspective);
     

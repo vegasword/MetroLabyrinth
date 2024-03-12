@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://site-assets.fontawesome.com/releases/v6.5.1/css/all.css">
+    <script type="module" src="main.js"></script>
+    <title>Accueil - Metro Labyrinth</title>
+</head>
+<body>
+    <popup class="more hidden">
+        <i class="fa-solid fa-xmark"></i>
+        <p><span>Nombres de joueurs :</span> 2 à 4</p>
+        <p><span>But du jeu :</span> Dans le labyrinthe qu'est le métro parisien, les joueurs partent à la chasse aux trésors. Le premier joueur à récupérer tous ses trésors et à revenir à sa place de départ remporte la partie.</p>
+        <p><span>Déroulement :</span></p>
+        <ul>
+            <li>À chaque tour, le joueur doit déplacer une rangée ou une colonne de cartons carrés «labyrinthe» pour créer un nouveau chemin.</li>            
+            <li>Il peut ensuite déplacer son pion sur le nouveau chemin ainsi créé.</li>            
+            <li>Si le joueur arrive sur un carton «trésor», il prend la carte correspondante et la place devant lui.</li>            
+            <li>Le joueur doit ensuite replacer le carton «trésor» sur le plateau, sur un autre emplacement libre.</li>            
+            <li>Le premier joueur à récupérer tous ses trésors et à revenir à sa place de départ remporte la partie.</li>            
+        </ul>
+    </popup>
+    <main>
+        <section id="first">
+            <h1 id="title" class="fadeToTopOpacity">Metro Labyrinth</h1>
+            <div class="container fadeToTopOpacity">
+                <div class="img"></div>
+                <div class="infos">
+                    <p>Plongez dans l'univers du jeu de société Labyrinthe mais inspirés des métros parisiens dans un plateau en 3D !</p>
+                    <div class="button">En savoir plus</div>
+                </div>
+            </div>
+        </section>
+        <section id="second">
+            <div class="firstContainer">
+                <div class="img"></div>
+                <div class="infos">
+                    <h1>À la recherche de trésor historique</h1>
+                    <p>Partez à la recherche des monuments iconiques de Paris pour remporter la partie !</p>
+                </div>
+            </div>
+            <div class="secondContainer">
+                <div class="infos">
+                    <h1>Jouer avec le monde entier</h1>
+                    <p>Jouer avec le monde en un clic et rejoignez une communauté d'aventurier prêt a en découdre pour la victoire.</p>
+                </div>
+                <div class="img"></div>
+            </div>
+        </section>
+        <section id="third">
+            <h1>Jouez maintenant !</h1>
+            <a href="/lobby/" class="button" id="playBtn">Jouer</a>
+            <div class="disabled button" id="unavailableBtn">Indisponible</div>
+        </section>
+        <section id="fourth">
+            <h1>Notre école</h1>
+            <a href="https://codingfactory.fr/">
+                <img src="img/coding-factory.png" class="codingFactory"></img>
+            </a>
+            <a href="https://www.esiee-it.fr/fr">
+                <img src="img/logo-esiee-it.png" class="esieeIT"></img>
+            </a>
+            <a href="https://www.cci-paris-idf.fr/fr#1">
+                <img src="img/cci-paris-idf.png" class="CCI"></img>
+            </a>
+        </section>
+    </main>
+    <footer>
+        <div class="copyright">© Metro Labyrinth Inc. 2024</div>
+    </footer>
+</body>
+</html>

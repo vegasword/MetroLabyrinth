@@ -1,5 +1,9 @@
+//TODO: Replace all the game.labyrinth local stuff to sockets
 import * as THREE from "three";
 import {Game, GamePhase } from "./objects.js";
+import { io } from "socket.io-client";
+
+const socket = io("localhost:8080")
 
 const gameViewport = document.getElementById("labyrinth")!;
 

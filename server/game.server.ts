@@ -1,3 +1,7 @@
+import express from "express";
+import { createServer } from "http";
+import { Server, Socket } from "socket.io";
+
 enum GamePhase {"PLACE_TILE", "MOVE_PLAYER"};
 enum Direction {"UP", "RIGHT", "DOWN", "LEFT"};
 enum TileType {"STRAIGHT", "CORNER", "TJUNCTION"};
@@ -137,7 +141,7 @@ class Labyrinth {
   pawns !: Pawn[]
   treasures !: Treasure[];
 
-  constructor(dimension : number) {
+  constructor(socket : Socket, dimension : number) {
     if (dimension % 2 == 0 && dimension > 7) {
       alert("The dimension should be odd and superior to 7!");
       return;
@@ -167,9 +171,6 @@ class Labyrinth {
     this.pawns.push(new Pawn(this.maxDim, 0));
     this.pawns.push(new Pawn(this.maxDim, this.maxDim));
     this.pawns.push(new Pawn(0, this.maxDim));
-    /* TODO: Client socket
-    for (let pawn of this.pawns) scene.add(pawn.mesh);
-    */
     
     this.treasures = [];
     this.nTreasures = Math.floor(24 * this.dim / 7);
@@ -205,11 +206,7 @@ class Labyrinth {
       for (let j = 0; j < pawnTreasures.length; ++j) {
         this.treasures.push(
           new Treasure(treasureId, pawnTreasures[j].x, pawnTreasures[j].y));        
-        
-        /* TODO: Client socket
-        scene.add(this.treasures[i * pawnTreasures.length + j].mesh);
-        */
-        
+                
         this.pawns[i].remainingTreasures.push(treasureId);
         this.tiles[pawnTreasures[j].x][pawnTreasures[j].y].treasureId = treasureId;
         treasureId++;
@@ -245,55 +242,37 @@ class Labyrinth {
           this.tiles[x][y].setType(randomTiles[randomTileIndex]);
           randomTileIndex++;
         }
+                  
+        this.tiles[x][y].move(x, y);
         
-        /* TODO: Client socket
-        loader.load(modelsPath[this.tiles[x][y].type], (gltf) => {
-          gltf.scene.traverse((child) => {
-            if (child.type == "Mesh") this.tiles[x][y].mesh = child;
-          });
-          
-          this.tiles[x][y].move(x, y, false);
-          
-          if ((x != 0 && x != this.maxDim) || (y != 0 && y != this.maxDim)) {
-            if (x % 2 == 0 && y % 2 == 0) {
-              if (y == 0) this.tiles[x][y].rotate();
-              else if (x == 0) this.tiles[x][y].rotate(-1);
-              else if (y == this.maxDim) this.tiles[x][y].rotate(3);
-              else if (x == this.maxDim) this.tiles[x][y].rotate(2);
-              else if (x < this.hDim && y < this.hDim) this.tiles[x][y].rotate(-1);
-              else if (x < this.hDim && y > this.hDim) this.tiles[x][y].rotate(3);
-              else if (x > this.hDim && y < this.hDim) this.tiles[x][y].rotate();
-              else if (x > this.hDim && y > this.hDim) this.tiles[x][y].rotate(2);
-            } else if (x % 2 != 0 || y % 2 != 0) {
-              this.tiles[x][y].rotateRandomly();
-              if (y == 0) this.entryPoints.push(new Vector3(x, 0, -1));
-              else if (x == 0) this.entryPoints.push(new Vector3(-1, 0, y));
-              else if (y == this.maxDim) this.entryPoints.push(new Vector3(x, 0, this.dim));
-              else if (x == this.maxDim) this.entryPoints.push(new Vector3(this.dim, 0, y));
-            }
-          } else {
-            this.tiles[x][y].directions = [Direction.RIGHT, Direction.DOWN];
-            if (x == 0 && y == this.maxDim) this.tiles[x][y].rotate(1, Rotation.COUNTERCLOCKWISE);
-            else if (x == this.maxDim && y == 0) this.tiles[this.maxDim][0].rotate();
-            else if (x == this.maxDim && y == this.maxDim) this.tiles[this.maxDim][this.maxDim].rotate(2);
+        if ((x != 0 && x != this.maxDim) || (y != 0 && y != this.maxDim)) {
+          if (x % 2 == 0 && y % 2 == 0) {
+            if (y == 0) this.tiles[x][y].rotate();
+            else if (x == 0) this.tiles[x][y].rotate(-1);
+            else if (y == this.maxDim) this.tiles[x][y].rotate(3);
+            else if (x == this.maxDim) this.tiles[x][y].rotate(2);
+            else if (x < this.hDim && y < this.hDim) this.tiles[x][y].rotate(-1);
+            else if (x < this.hDim && y > this.hDim) this.tiles[x][y].rotate(3);
+            else if (x > this.hDim && y < this.hDim) this.tiles[x][y].rotate();
+            else if (x > this.hDim && y > this.hDim) this.tiles[x][y].rotate(2);
+          } else if (x % 2 != 0 || y % 2 != 0) {
+            this.tiles[x][y].rotateRandomly();
           }
-          
-          scene.add(this.tiles[x][y].mesh);
-        });
-        */
+        } else {
+          this.tiles[x][y].directions = [Direction.RIGHT, Direction.DOWN];
+          if (x == 0 && y == this.maxDim) this.tiles[x][y].rotate(1, Rotation.COUNTERCLOCKWISE);
+          else if (x == this.maxDim && y == 0) this.tiles[this.maxDim][0].rotate();
+          else if (x == this.maxDim && y == this.maxDim) this.tiles[this.maxDim][this.maxDim].rotate(2);
+        } 
       }
     }
 
-    /* TODO: Client socket
-    loader.load(modelsPath[outerTile.type], (gltf) => {
-      gltf.scene.traverse((child) => {
-        if (child.type == "Mesh") outerTile.mesh = child;
-      });
-      outerTile.move(-1, 1, false);
-      outerTile.rotateRandomly();
-      scene.add(outerTile.mesh);    
+    outerTile.move(-1, 1);
+    outerTile.rotateRandomly();
+    
+    socket.emit("game:create", { 
+      tiles: this.tiles, outerTile: outerTile, treasures: this.treasures
     });
-    */
   }
 
   rotateOuterTile() { this.tiles[this.dim][0].rotate(); }
@@ -467,15 +446,17 @@ class Labyrinth {
   }
 }
 
-class Game {
+class GameServer {
+  socket : Socket;
   labyrinth : Labyrinth;
   entities : Entity[];  
   
   currentPawn : number;
   phase : GamePhase;
     
-  constructor() {
-    this.labyrinth = new Labyrinth(7);
+  constructor(socket : Socket) {
+    this.socket = socket;
+    this.labyrinth = new Labyrinth(socket, 7);
 
     this.currentPawn = 0;
     this.phase = GamePhase.PLACE_TILE;
@@ -495,12 +476,18 @@ class Game {
   }
 }
 
-import express from "express";
-import { createServer } from "http";
-import { Server } from "socket.io";
-
-const server = new Server(createServer(express()));
-server.on("connection", (socket) => {
-  //TODO
+const server = new Server(createServer(express()), {
+  cors: {
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST"]
+  }
 });
+
+server.on("connection", (socket) => {
+  console.log("Connected");
+  let game = new GameServer(socket);
+
+  //TODO: Broadcast socket
+});
+
 server.listen(3000);

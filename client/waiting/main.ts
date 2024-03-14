@@ -1,10 +1,12 @@
-document.addEventListener('DOMContentLoaded', function () {
-  const socket = io('http://localhost:8080');
+import { io } from "socket.io-client";
+
+document.addEventListener("DOMContentLoaded", function () {
+  const socket = io("http://localhost:8001");
   const playersList = document.getElementById("playersList");
-  const user = JSON.parse(window.localStorage.getItem("user"));
-  const room = JSON.parse(window.localStorage.getItem("room"));
+  const user = JSON.parse(window.localStorage.getItem("user") || "");
+  const room = JSON.parse(window.localStorage.getItem("room") || "");
   const urlParams = new URLSearchParams(window.location.search);
-  const urlRoomId = urlParams.get('room');
+  const urlRoomId = urlParams.get("room");
 
   if (urlRoomId == null) {
     alert("Room ID not found");
@@ -24,13 +26,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
   socket.on("server:reconnected", () => {
     socket.on("player:new", ({ room }) => {
-      playersList.innerHTML = "";
-      room.map((player) => {
-        const li = document.createElement("li");
-        li.appendChild(document.createTextNode(player.username));
-        li.id = player.id;
-        playersList.appendChild(li);
-      });
+      if (playersList) {
+        playersList.innerHTML = "";
+        room.map((player) => {
+          const li = document.createElement("li");
+          li.appendChild(document.createTextNode(player.username));
+          li.id = player.id;
+          playersList.appendChild(li);
+        });
+      }
     });
     socket.on("player:left", ({ uid }) => {
       const player = document.getElementById(uid);
@@ -41,7 +45,11 @@ document.addEventListener('DOMContentLoaded', function () {
     socket.emit("players:get");
   });
 
-  socket.emit("server:reconnect", { roomId: urlRoomId, uid: user.id, username: user.name })
+  socket.emit("server:reconnect", {
+    roomId: urlRoomId,
+    uid: user.id,
+    username: user.name,
+  });
 
   socket.on("error", (message) => {
     alert(message);

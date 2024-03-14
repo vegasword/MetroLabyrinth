@@ -1,3 +1,5 @@
+import { Socket } from "socket.io-client";
+
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -570,7 +572,9 @@ class MoveAnimation {
   }
 }
 
-class Game {
+class GameClient {
+  socket : Socket;
+  
   window : Window;
   scene : THREE.Scene;
   raycaster : THREE.Raycaster;
@@ -586,7 +590,9 @@ class Game {
   currentPawn : number;
   phase : GamePhase;
     
-  constructor(window : Window) {
+  constructor(window : Window, socket : Socket) {
+    this.socket = socket;
+    
     this.window = window;
     this.scene = new THREE.Scene();
     this.scene.add(new THREE.DirectionalLight());
@@ -653,4 +659,4 @@ class Game {
   }
 }
 
-export { Game, GamePhase, Direction };
+export { GameClient, GamePhase, Direction };

@@ -1,9 +1,16 @@
+import { io } from "socket.io-client";
+const socket = io("http://localhost:3000")
+
 import * as EVENTS from "./events";
-import { Game, GamePhase } from "./objects";
+import { GameClient, GamePhase } from "./objects";
 
 const gameViewport = document.getElementById("labyrinth")!;
 
-let game = new Game(window);
+let game = new GameClient(window, socket);
+
+game.socket.on("game:create", (game) => {
+  console.log(game);
+});
 
 window.addEventListener("resize", function () {
   game.camera.perspective.aspect = gameViewport.clientWidth / window.innerHeight;

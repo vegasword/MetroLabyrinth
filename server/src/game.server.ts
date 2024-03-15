@@ -31,7 +31,10 @@ class Entity {
 class Treasure extends Entity {
   id : number;
   
-  constructor(id : number, x : number, y : number) { super(x, y); this.id = id; }
+  constructor(id : number, x : number, y : number) { 
+    super(x, y);
+    this.id = id;
+  }
 }
 
 class Pawn extends Entity {
@@ -47,11 +50,10 @@ class Pawn extends Entity {
 
 class Tile extends Entity {
   type : TileType = 0;
+  rotation : number = 0 // In radians
   treasureId : number = 0;
   directions : Direction[] = [];
   
-  //constructor(x : number, y : number) { super(x, y); }
-
   rotate(n : number = 1, rotationDirection : Rotation = Rotation.CLOCKWISE) {
     for (let i = 0; i < n; ++i) {
       for (let j = 0; j < this.directions.length; ++j) {
@@ -66,9 +68,7 @@ class Tile extends Entity {
           }
         }
       }
-      /* TODO: Socket to client
-      this.mesh.rotateY(rotationDirection * Math.PI / 2);
-      */
+      this.rotation += rotationDirection * Math.PI / 2;
     }
   }
 
@@ -134,14 +134,13 @@ class Labyrinth {
   maxDim !: number;
   hDim !: number;
   nTreasures !: number;
-  
   tiles !: Tile[][];
   selectedTiles !: Tile[];
   pathFoundTiles !: Tile[];
   pawns !: Pawn[]
   treasures !: Treasure[];
 
-  constructor(socket : Socket, dimension : number) {
+  constructor(server : Server, dimension : number) {
     if (dimension % 2 == 0 && dimension > 7) {
       alert("The dimension should be odd and superior to 7!");
       return;
@@ -270,8 +269,10 @@ class Labyrinth {
     outerTile.move(-1, 1);
     outerTile.rotateRandomly();
     
-    socket.emit("game:create", { 
-      tiles: this.tiles, outerTile: outerTile, treasures: this.treasures
+    server.emit("game:create", { 
+      dimension: this.dim, 
+      tiles: this.tiles,
+      treasures: this.treasures
     });
   }
 
@@ -447,16 +448,16 @@ class Labyrinth {
 }
 
 class GameServer {
-  socket : Socket;
+  server : Server;
   labyrinth : Labyrinth;
   entities : Entity[];  
   
   currentPawn : number;
   phase : GamePhase;
     
-  constructor(socket : Socket) {
-    this.socket = socket;
-    this.labyrinth = new Labyrinth(socket, 7);
+  constructor(server : Server) {
+    this.server = server;
+    this.labyrinth = new Labyrinth(server, 7);
 
     this.currentPawn = 0;
     this.phase = GamePhase.PLACE_TILE;
@@ -476,18 +477,15 @@ class GameServer {
   }
 }
 
-const server = new Server(createServer(express()), {
+export const gameServer = createServer(express());
+const io = new Server(gameServer, {
   cors: {
     origin: "http://localhost:5173",
     methods: ["GET", "POST"]
   }
 });
 
-server.on("connection", (socket) => {
+io.on("connection", () => {
   console.log("Connected");
-  let game = new GameServer(socket);
-
-  //TODO: Broadcast socket
+  let gameServer = new GameServer(io);
 });
-
-server.listen(3000);

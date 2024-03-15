@@ -1,39 +1,79 @@
-<!DOCTYPE html>
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
     <link rel="stylesheet" href="css/style.css" />
-    <link rel="stylesheet" href="css/game.css" />
+
+    <link rel="stylesheet" href="css/lobby.css" />
+
     <title>Lobby - Metro Labyrinth</title>
   </head>
 
   <body>
-    <main id="main">
-      <form id="join" action="">
-        <label for="username">
-          Nom d'utilisateur
-          <input type="text" id="usernameJoin" name="username" required />
-        </label>
-        <label for="roomId">
-          Identifiant de la salle
-          <input type="text" id="roomId" name="roomId" required />
-        </label>
-        <button type="submit">Rejoindre la salle</button>
+    <main id="main" class="lobby-container">
+      <div>
+        <h1>Metro Labyrinth</h1>
+
+        <img class="metro" src="/lobby/img/metroLobby.webp" alt="metro" />
+      </div>
+
+      <form id="join" class="lobby-form" action="">
+        <div class="title">Rejoindre une partie</div>
+
+        <div>
+          <label for="usernameJoin" class="form-label">
+            Nom d'utilisateur
+
+            <input
+              type="text"
+              id="usernameJoin"
+              name="username"
+              required
+              class="form-input" />
+          </label>
+
+          <label for="roomId" class="form-label">
+            Identifiant de la salle
+
+            <input
+              type="text"
+              id="roomId"
+              name="roomId"
+              required
+              class="form-input" />
+          </label>
+        </div>
+
+        <button type="submit" class="form-button">Rejoindre la salle</button>
       </form>
-      <form id="create" action="">
-        <label for="username">
+
+      <form id="create" class="lobby-form" action="">
+        <div class="title">Créer une partie</div>
+
+        <label for="usernameCreate" class="form-label">
           Nom d'utilisateur
-          <input type="text" id="usernameCreate" name="username" required />
+
+          <input
+            type="text"
+            id="usernameCreate"
+            name="username"
+            required
+            class="form-input" />
         </label>
-        <button type="submit">Créer une nouvelle salle</button>
+
+        <button type="submit" class="form-button">
+          Créer une nouvelle salle
+        </button>
       </form>
     </main>
+
     <script
       src="https://cdn.socket.io/4.7.4/socket.io.min.js"
       integrity="sha384-Gr6Lu2Ajx28mzwyVR8CFkULdCU7kMlZ9UthllibdOSo6qAiN+yXNHqtgdTvFXMT4"
-      crossorigin="anonymous"
-    ></script>
+      crossorigin="anonymous"></script>
+
     <script type="module" src="main.ts"></script>
   </body>
 </html>

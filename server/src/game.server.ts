@@ -49,9 +49,10 @@ class Pawn extends Entity {
 }
 
 class Tile extends Entity {
-  type : TileType = 0;
-  rotation : number = 0 // In radians
-  treasureId : number = 0;
+  type !: TileType;
+  treasureId !: number;
+  
+  rotation : number = 0;
   directions : Direction[] = [];
   
   rotate(n : number = 1, rotationDirection : Rotation = Rotation.CLOCKWISE) {
@@ -140,16 +141,10 @@ class Labyrinth {
   pawns !: Pawn[]
   treasures !: Treasure[];
 
-  constructor(server : Server, dimension : number) {
-    if (dimension % 2 == 0 && dimension > 7) {
-      alert("The dimension should be odd and superior to 7!");
-      return;
-    }
-    
+  constructor(server : Server, dimension : number) {    
     this.dim = dimension;
     this.maxDim = this.dim - 1;
     this.hDim = this.maxDim / 2;
-
     this.selectedTiles = [];
     this.pathFoundTiles = [];
 
@@ -168,8 +163,8 @@ class Labyrinth {
     this.pawns = [];
     this.pawns.push(new Pawn(0, 0));
     this.pawns.push(new Pawn(this.maxDim, 0));
-    this.pawns.push(new Pawn(this.maxDim, this.maxDim));
     this.pawns.push(new Pawn(0, this.maxDim));
+    this.pawns.push(new Pawn(this.maxDim, this.maxDim));
     
     this.treasures = [];
     this.nTreasures = Math.floor(24 * this.dim / 7);
@@ -203,8 +198,7 @@ class Labyrinth {
                          .splice(0, treasuresPerPawn);
       
       for (let j = 0; j < pawnTreasures.length; ++j) {
-        this.treasures.push(
-          new Treasure(treasureId, pawnTreasures[j].x, pawnTreasures[j].y));        
+        this.treasures.push(new Treasure(treasureId, pawnTreasures[j].x, pawnTreasures[j].y));        
                 
         this.pawns[i].remainingTreasures.push(treasureId);
         this.tiles[pawnTreasures[j].x][pawnTreasures[j].y].treasureId = treasureId;
@@ -214,10 +208,11 @@ class Labyrinth {
     }
 
     let randomTiles : TileType[] = [];
+    let sqrDim = this.dim * this.dim;
     let quotaRandomTiles = {
-      [TileType.STRAIGHT]: Math.round(this.dim * this.dim / 28 * this.dim),
-      [TileType.CORNER]: Math.round(this.dim * this.dim / 21 * this.dim),
-      [TileType.TJUNCTION]: Math.round(this.dim * this.dim / 57  * this.dim)
+      [TileType.STRAIGHT]: Math.round(sqrDim / 28 * this.dim),
+      [TileType.CORNER]: Math.round(sqrDim / 21 * this.dim),
+      [TileType.TJUNCTION]: Math.round(sqrDim / 57  * this.dim)
     };
     quotaRandomTiles[outerTile.type]--;
     
@@ -266,7 +261,7 @@ class Labyrinth {
       }
     }
 
-    outerTile.move(-1, 1);
+    outerTile.move(-1, this.dim);
     outerTile.rotateRandomly();
     
     server.emit("game:create", { 

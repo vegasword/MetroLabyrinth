@@ -69,6 +69,7 @@ class Pawn extends Entity {
 
 class Tile extends Entity {
   type : TileType;
+  rotation : number;
   treasureId : number;
   directions : Direction[];
   
@@ -92,52 +93,6 @@ class Tile extends Entity {
         }
       }
       this.mesh.rotateY(rotationDirection * Math.PI / 2);
-    }
-  }
-
-  setType(type : TileType) {    
-    this.type = type;
-    switch (type) {
-      case TileType.STRAIGHT: {
-        this.directions.push(Direction.UP, Direction.DOWN);
-      } break;
-        
-      case TileType.CORNER: {
-        this.directions.push(Direction.RIGHT, Direction.DOWN);
-      } break;
-        
-      case TileType.TJUNCTION: {
-        this.directions.push(Direction.UP, Direction.DOWN, Direction.RIGHT);
-      } break;
-    }
-  }
-  
-  setRandomType() {
-    this.setType(Math.round(Math.random() * TileType.TJUNCTION));
-  }
-
-  rotateRandomly() {
-    let doShuffle : boolean = Math.round(Math.random()) == 1;
-    let nShuffle = Math.round(Math.random() * 4);
-    
-    switch (this.type) {
-      case TileType.STRAIGHT: {        
-        if (doShuffle) this.rotate();
-      } break;
-
-      case TileType.CORNER: {
-        for (let i = 0; i < nShuffle; ++i) {
-          if (doShuffle) this.rotate();
-          else this.rotate(1, Rotation.COUNTERCLOCKWISE);
-        }
-      } break;
-
-      case TileType.TJUNCTION: {
-        for (let i = 0; i < nShuffle; ++i) {
-          if (doShuffle) this.rotate();
-          else this.rotate(1, Rotation.COUNTERCLOCKWISE);
-        }
-      } break;
     }
   }
 }
@@ -207,6 +162,8 @@ class MoveAnimation {
 }
 
 class GameClient {  
+  isInitialized : boolean;
+  
   window : Window;
   scene : THREE.Scene;
   raycaster : THREE.Raycaster;
@@ -279,6 +236,7 @@ export {
   GamePhase,
   Labyrinth,
   Entity,
+  Pawn,
   Tile,
   TileType,
   Treasure,

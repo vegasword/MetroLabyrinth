@@ -1,10 +1,11 @@
+/*
 import * as THREE from "three";
-import {Game, GamePhase } from "./objects.js";
+import { GameClient, GamePhase } from "./game";
 
 const gameViewport = document.getElementById("labyrinth")!;
 
 const plane : THREE.Plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-export function moveTile(e : MouseEvent, game : Game) {      
+export function moveTile(e : MouseEvent, client : GameClient) {      
   let ndc = new THREE.Vector2(
     (e.clientX / gameViewport.clientWidth) * 2 - 1.5,
     -(e.clientY / gameViewport.clientHeight) * 2 + 1
@@ -29,11 +30,12 @@ export function moveTile(e : MouseEvent, game : Game) {
   }
 }
   
-export function rotateTile(event : KeyboardEvent, game : Game) {
-  if (event.key == " " || event.key == 'r') game.labyrinth.rotateOuterTile();
+export function rotateTile(event : KeyboardEvent, client : GameClient) {
+  if (event.key == " " || event.key == 'r') 
+    client.labyrinth.rotateOuterTile();
 }
   
-export function placeTile(event : MouseEvent, game : Game) {
+export function placeTile(event : MouseEvent, client : GameClient) {
   if (event.button == 0) {
     game.labyrinth.moveLane();
     game.labyrinth.playerPathFinding(game.getPlayerTile());
@@ -46,7 +48,7 @@ export function placeTile(event : MouseEvent, game : Game) {
   }
 }
 
-export function movePlayer(e : MouseEvent, game : Game) {
+export function movePlayer(e : MouseEvent, client : GameClient) {
   if (e.button == 0) {
     let ndc = new THREE.Vector2(
       (e.clientX / gameViewport.clientWidth) * 2 - 1.5,
@@ -64,3 +66,4 @@ export function movePlayer(e : MouseEvent, game : Game) {
     }
   }
 }
+*/

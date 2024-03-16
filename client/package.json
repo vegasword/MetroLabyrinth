@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "start": "npx vite"
+  },
   "dependencies": {
     "socket.io-client": "^4.7.4",
     "three": "^0.160.0",

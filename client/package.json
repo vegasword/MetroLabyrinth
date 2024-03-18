@@ -1,4 +1,5 @@
 {
+  "name": "metro-labyrinth-client",
   "scripts": {
     "start": "npx vite"
   },

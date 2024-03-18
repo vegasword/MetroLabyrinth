@@ -1,6 +1,7 @@
 import express from "express";
 import { createServer } from "http";
 import { Server, Socket } from "socket.io";
+import { Vector3 } from "three";
 
 enum GamePhase {"PLACE_TILE", "MOVE_PLAYER"};
 enum Direction {"UP", "RIGHT", "DOWN", "LEFT"};
@@ -11,20 +12,14 @@ class Entity {
   x : number;
   y : number;
   
-  constructor(x : number, y : number) { this.x = x; this.y = y; }
-
-  move(x : number, y : number) {
+  constructor(x : number, y : number) { 
     this.x = x;
-    this.y = y;    
-    
-    /* TODO: Socket to client
-    if (animated) {
-      this.moving = true;
-    } else {
-      this.mesh.position.setX(x);
-      this.mesh.position.setZ(y);
-    }
-    */
+    this.y = y;
+  }
+
+  move(x : number, y : number, animated : boolean = false, socket ?: Socket) {
+    this.x = x;
+    this.y = y;        
   }
 }
 
@@ -34,6 +29,17 @@ class Treasure extends Entity {
   constructor(id : number, x : number, y : number) { 
     super(x, y);
     this.id = id;
+  }
+
+  move(x : number, y : number, animated : boolean = false, socket ?: Socket) {
+    super.move(x, y, animated);
+    
+    socket?.emit("server:onTreasureMoved", { 
+      id: this.id,
+      x: this.x,
+      y: this.y,
+      animated: animated
+    });
   }
 }
 
@@ -46,6 +52,16 @@ class Pawn extends Entity {
     this.remainingTreasures = [];
     this.hasMoved = false;
   }
+
+  move(x : number, y : number, animated : boolean = false, socket ?: Socket) {
+    super.move(x, y, animated);
+    
+    socket?.emit("server:onPawnMoved", { 
+      x: this.x,
+      y: this.y,
+      animated: animated
+    });
+  }
 }
 
 class Tile extends Entity {
@@ -55,6 +71,17 @@ class Tile extends Entity {
   rotation : number = 0;
   directions : Direction[] = [];
   
+  move(x : number, y : number, animated : boolean = false, socket ?: Socket) {    
+    socket?.emit("server:onTileMoved", { 
+      fromX: this.x,
+      fromY: this.y,
+      toX: x,
+      toY: y,
+      animated: animated
+    });
+    super.move(x, y, animated);
+  }
+    
   rotate(n : number = 1, rotationDirection : Rotation = Rotation.CLOCKWISE) {
     for (let i = 0; i < n; ++i) {
       for (let j = 0; j < this.directions.length; ++j) {
@@ -131,34 +158,34 @@ function shuffle(arr : any[]) {
 }
 
 class Labyrinth {  
-  dim !: number;
-  maxDim !: number;
-  hDim !: number;
+  dimension !: number;
+  maxDim !: number; //TODO: Get rid of this
+  halfDim !: number;
+  
   nTreasures !: number;
-  tiles !: Tile[][];
-  selectedTiles !: Tile[];
   pathFoundTiles !: Tile[];
+  
+  tiles !: Tile[][];
   pawns !: Pawn[]
   treasures !: Treasure[];
 
-  constructor(server : Server, dimension : number) {    
-    this.dim = dimension;
-    this.maxDim = this.dim - 1;
-    this.hDim = this.maxDim / 2;
-    this.selectedTiles = [];
+  constructor(dimension : number) {    
+    this.dimension = dimension;
+    this.maxDim = this.dimension - 1;
+    this.halfDim = this.maxDim / 2;
     this.pathFoundTiles = [];
 
     this.tiles = [];
-    for (let x = 0; x < this.dim; ++x) {
+    for (let x = 0; x < this.dimension; ++x) {
       this.tiles[x] = [];
-      for (let y = 0; y < this.dim; ++y) {
+      for (let y = 0; y < this.dimension; ++y) {
         this.tiles[x][y] = new Tile(x, y);
       }
     }
 
     let outerTile = new Tile(-1, dimension);
     outerTile.setRandomType();
-    this.tiles[this.dim] = [outerTile];
+    this.tiles[this.dimension] = [outerTile];
 
     this.pawns = [];
     this.pawns.push(new Pawn(0, 0));
@@ -167,14 +194,14 @@ class Labyrinth {
     this.pawns.push(new Pawn(this.maxDim, this.maxDim));
     
     this.treasures = [];
-    this.nTreasures = Math.floor(24 * this.dim / 7);
+    this.nTreasures = Math.floor(24 * this.dimension / 7);
     
     let treasureId = 0;
     let everyTreasuresCoords : any[] = [];
     let availableTreasureRandomSlots : any[] = [];
     
-    for (let x = 0; x < this.dim; x++) {
-      for (let y = 0; y < this.dim; y++) {
+    for (let x = 0; x < this.dimension; x++) {
+      for (let y = 0; y < this.dimension; y++) {
         if ((x != 0 && x != this.maxDim) || (y != 0 && y != this.maxDim)) {
           if (x % 2 == 0 && y % 2 == 0) {
             this.tiles[x][y].setType(TileType.TJUNCTION);
@@ -199,7 +226,6 @@ class Labyrinth {
       
       for (let j = 0; j < pawnTreasures.length; ++j) {
         this.treasures.push(new Treasure(treasureId, pawnTreasures[j].x, pawnTreasures[j].y));        
-                
         this.pawns[i].remainingTreasures.push(treasureId);
         this.tiles[pawnTreasures[j].x][pawnTreasures[j].y].treasureId = treasureId;
         treasureId++;
@@ -208,15 +234,15 @@ class Labyrinth {
     }
 
     let randomTiles : TileType[] = [];
-    let sqrDim = this.dim * this.dim;
+    let sqrDim = this.dimension * this.dimension;
     let quotaRandomTiles = {
-      [TileType.STRAIGHT]: Math.round(sqrDim / 28 * this.dim),
-      [TileType.CORNER]: Math.round(sqrDim / 21 * this.dim),
-      [TileType.TJUNCTION]: Math.round(sqrDim / 57  * this.dim)
+      [TileType.STRAIGHT]: Math.round(sqrDim / 28 * this.dimension),
+      [TileType.CORNER]: Math.round(sqrDim / 21 * this.dimension),
+      [TileType.TJUNCTION]: Math.round(sqrDim / 57  * this.dimension)
     };
     quotaRandomTiles[outerTile.type]--;
     
-    function fillTilesType(type : TileType) {
+    const fillTilesType = (type : TileType) => {
       for (let i = 0; i < quotaRandomTiles[type]; ++i) randomTiles.push(type);
     }
     fillTilesType(TileType.STRAIGHT);
@@ -228,56 +254,57 @@ class Labyrinth {
     this.tiles[0][this.maxDim].type = TileType.CORNER;
     this.tiles[this.maxDim][0].type = TileType.CORNER;
     this.tiles[this.maxDim][this.maxDim].type = TileType.CORNER;
-            
+        
     let randomTileIndex = 0;
-    for (let x = 0; x < this.dim; x++) {
-      for (let y = 0; y < this.dim; y++) {
+    for (let x = 0; x < this.dimension; x++) {
+      for (let y = 0; y < this.dimension; y++) {
         if (this.tiles[x][y].type == undefined) {
           this.tiles[x][y].setType(randomTiles[randomTileIndex]);
           randomTileIndex++;
         }
                   
-        this.tiles[x][y].move(x, y);
+        let tile : Tile = this.tiles[x][y];
+        tile.move(x, y);
         
         if ((x != 0 && x != this.maxDim) || (y != 0 && y != this.maxDim)) {
           if (x % 2 == 0 && y % 2 == 0) {
-            if (y == 0) this.tiles[x][y].rotate();
-            else if (x == 0) this.tiles[x][y].rotate(-1);
-            else if (y == this.maxDim) this.tiles[x][y].rotate(3);
-            else if (x == this.maxDim) this.tiles[x][y].rotate(2);
-            else if (x < this.hDim && y < this.hDim) this.tiles[x][y].rotate(-1);
-            else if (x < this.hDim && y > this.hDim) this.tiles[x][y].rotate(3);
-            else if (x > this.hDim && y < this.hDim) this.tiles[x][y].rotate();
-            else if (x > this.hDim && y > this.hDim) this.tiles[x][y].rotate(2);
-          } else if (x % 2 != 0 || y % 2 != 0) {
-            this.tiles[x][y].rotateRandomly();
+            if (y == 0) tile.rotate();
+            else if (x == 0) tile.rotate(-1);
+            else if (y == this.maxDim) tile.rotate(3);
+            else if (x == this.maxDim) tile.rotate(2);
+            else if (x < this.halfDim && y < this.halfDim) tile.rotate(-1);
+            else if (x < this.halfDim && y > this.halfDim) tile.rotate(3);
+            else if (x > this.halfDim && y < this.halfDim) tile.rotate();
+            else if (x > this.halfDim && y > this.halfDim) tile.rotate(2);
+          } else {
+            tile.rotateRandomly();
           }
         } else {
-          this.tiles[x][y].directions = [Direction.RIGHT, Direction.DOWN];
-          if (x == 0 && y == this.maxDim) this.tiles[x][y].rotate(1, Rotation.COUNTERCLOCKWISE);
-          else if (x == this.maxDim && y == 0) this.tiles[this.maxDim][0].rotate();
-          else if (x == this.maxDim && y == this.maxDim) this.tiles[this.maxDim][this.maxDim].rotate(2);
-        } 
+          tile.directions = [Direction.RIGHT, Direction.DOWN];
+          if (x == 0 && y == this.maxDim) {
+            tile.rotate(1, Rotation.COUNTERCLOCKWISE);
+          } else if (x == this.maxDim && y == 0) {
+            this.tiles[this.maxDim][0].rotate();
+          } else if (x == this.maxDim && y == this.maxDim) {
+           this.tiles[this.maxDim][this.maxDim].rotate(2); 
+          }
+        }
       }
     }
 
-    outerTile.move(-1, this.dim);
-    outerTile.rotateRandomly();
-    
-    server.emit("game:create", { 
-      dimension: this.dim, 
-      tiles: this.tiles,
-      treasures: this.treasures
-    });
+    outerTile.move(-1, this.dimension);
+    outerTile.rotateRandomly();    
   }
 
-  rotateOuterTile() { this.tiles[this.dim][0].rotate(); }
+  getOuterTile() { return this.tiles[this.dimension][0]; }
+
+  rotateOuterTile() { this.getOuterTile().rotate(); }
 
   moveTreasureIfExists(tile : Tile, x : number, y : number) {
     if (tile.treasureId != undefined) {
       for (let treasure of this.treasures) {
         if (treasure.id == tile.treasureId) {
-          treasure.move(x, y);
+          treasure.move(x, y, true);
           return;
         }
       }
@@ -285,7 +312,7 @@ class Labyrinth {
   }
   
   moveTile(entryDirection : Direction, fromX : number, fromY : number, toX : number, toY : number) {
-    this.tiles[fromX][fromY].move(toX, toY);
+    this.tiles[fromX][fromY].move(toX, toY, true);
     this.moveTreasureIfExists(this.tiles[fromX][fromY], toX, toY);
     
     for (let pawn of this.pawns) {
@@ -293,26 +320,26 @@ class Labyrinth {
         switch (entryDirection) {
           case Direction.UP: {
             let delta = pawn.y + 1;
-            if (delta < this.dim) pawn.move(pawn.x, delta);
-            else pawn.move(pawn.x, 0);
+            if (delta < this.dimension) pawn.move(pawn.x, delta, true);
+            else pawn.move(pawn.x, 0, true);
           } break;
 
           case Direction.DOWN: {
             let delta = pawn.y - 1;
-            if (delta > -1) pawn.move(pawn.x, delta);
-            else pawn.move(pawn.x, this.maxDim);
+            if (delta > -1) pawn.move(pawn.x, delta, true);
+            else pawn.move(pawn.x, this.maxDim, true);
           } break;
 
           case Direction.LEFT: {
             let delta = pawn.x + 1;
-            if (delta < this.dim) pawn.move(delta, pawn.y);
-            else pawn.move(0, pawn.y);
+            if (delta < this.dimension) pawn.move(delta, pawn.y, true);
+            else pawn.move(0, pawn.y, true);
           } break;
 
           case Direction.RIGHT: {
             let delta = pawn.x - 1;
-            if (delta > -1) pawn.move(delta, pawn.y);
-            else pawn.move(this.maxDim, pawn.y);
+            if (delta > -1) pawn.move(delta, pawn.y, true);
+            else pawn.move(this.maxDim, pawn.y, true);
           } break;
         }
         pawn.hasMoved = true;
@@ -326,46 +353,46 @@ class Labyrinth {
   }
   
   moveLane(entryDirection : Direction, selectedX : number, selectedY : number) {
-    let outerTile = this.tiles[this.dim][0];
+    let outerTile = this.getOuterTile();
     switch (entryDirection) {
       case Direction.UP: {
-        outerTile.move(selectedX, 0);
+        outerTile.move(selectedX, 0, true);
         this.moveTreasureIfExists(outerTile, selectedX, 0);
-        for (let y = 0; y < this.dim; ++y) {
+        for (let y = 0; y < this.dimension; ++y) {
           this.moveTile(entryDirection, selectedX, y, selectedX, y + 1); 
           this.swapTile(selectedX, 0, selectedX, y);
         }        
-        this.swapTile(this.dim, 0,selectedX, 0);
+        this.swapTile(this.dimension, 0,selectedX, 0);
       } break;
 
       case Direction.DOWN: {
-        outerTile.move(selectedX, this.maxDim);
+        outerTile.move(selectedX, this.maxDim, true);
         this.moveTreasureIfExists(outerTile, selectedX, this.maxDim);
         for (let y = this.maxDim; y >= 0; --y) {
           this.moveTile(entryDirection, selectedX, y, selectedX, y - 1);
           this.swapTile(selectedX, this.maxDim, selectedX, y);
         }        
-        this.swapTile(this.dim, 0, selectedX, this.maxDim);
+        this.swapTile(this.dimension, 0, selectedX, this.maxDim);
       } break;
 
       case Direction.LEFT: {
-        outerTile.move(0, selectedY);
+        outerTile.move(0, selectedY, true);
         this.moveTreasureIfExists(outerTile, 0, selectedY);        
-        for (let x = 0; x < this.dim; ++x) {
+        for (let x = 0; x < this.dimension; ++x) {
           this.moveTile(entryDirection, x, selectedY, x + 1, selectedY);
           this.swapTile(0, selectedY, x , selectedY);
         }        
-        this.swapTile(this.dim, 0, 0, selectedY);
+        this.swapTile(this.dimension, 0, 0, selectedY);
       } break;
 
       case Direction.RIGHT: {
-        outerTile.move(this.maxDim, selectedY);
+        outerTile.move(this.maxDim, selectedY, true);
         this.moveTreasureIfExists(outerTile, this.maxDim, selectedY);        
         for (let x = this.maxDim; x >= 0; --x) {
           this.moveTile(entryDirection, x, selectedY, x - 1, selectedY);
           this.swapTile(this.maxDim, selectedY, x, selectedY);
         }
-        this.swapTile(this.dim, 0, this.maxDim, selectedY);
+        this.swapTile(this.dimension, 0, this.maxDim, selectedY);
       } break;
     }
     
@@ -433,26 +460,21 @@ class Labyrinth {
       this.pawns[currentPawn].remainingTreasures.shift();
       if (this.pawns[currentPawn].remainingTreasures.length < 0) {
         console.log(`Game over ! Player ${currentPawn} wins !`);
-        /* TODO: Client socket (popup + redirection)
-        alert(`Game over ! Player ${currentPawn} wins !`);
-        window.location.reload();
-        */
+        // TODO: Client socket (popup + redirection)
       }
     }
   }
 }
 
-class GameServer {
-  server : Server;
+class Game {
   labyrinth : Labyrinth;
   entities : Entity[];  
   
   currentPawn : number;
   phase : GamePhase;
     
-  constructor(server : Server) {
-    this.server = server;
-    this.labyrinth = new Labyrinth(server, 7);
+  constructor() {
+    this.labyrinth = new Labyrinth(7);
 
     this.currentPawn = 0;
     this.phase = GamePhase.PLACE_TILE;
@@ -480,7 +502,29 @@ const io = new Server(gameServer, {
   }
 });
 
-io.on("connection", () => {
-  console.log("Connected");
-  let gameServer = new GameServer(io);
+let game : Game = new Game();
+
+io.on("connection", (socket : Socket) => {
+  socket.emit("server:onConnected", { 
+    dimension: game.labyrinth.dimension, 
+    tiles: game.labyrinth.tiles,
+    treasures: game.labyrinth.treasures,
+    phase: game.phase
+  });  
+  
+  socket.on("client:onSelectEntry", (entryPoint : Vector3) => {
+    let outerTile = game.labyrinth.getOuterTile();
+    outerTile.move(entryPoint.x, entryPoint.z, true);
+    socket.emit("server:onOuterTileMoved", {
+      toX: entryPoint.x, 
+      toY: entryPoint.z,
+      animated: true
+    });
+    socket.broadcast.emit("server:onOuterTileMoved", {
+      toX: entryPoint.x, 
+      toY: entryPoint.z,
+      animated: true
+    });
+    // game.labyrinth.moveTreasureIfExists(outerTile, entryPoint.x, entryPoint.z);
+  });
 });

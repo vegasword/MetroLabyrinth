@@ -1,37 +1,56 @@
-/*
+import { Socket } from "socket.io-client";
+
 import * as THREE from "three";
-import { GameClient, GamePhase } from "./game";
+import * as CLIENT from "./client";
 
-const gameViewport = document.getElementById("labyrinth")!;
+const viewport = document.getElementById("labyrinth")!;
+const floor : THREE.Plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+const clamp = (val : number, min : number, max : number) => Math.min(Math.max(val, min), max)
 
-const plane : THREE.Plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-export function moveTile(e : MouseEvent, client : GameClient) {      
-  let ndc = new THREE.Vector2(
-    (e.clientX / gameViewport.clientWidth) * 2 - 1.5,
-    -(e.clientY / gameViewport.clientHeight) * 2 + 1
-  );
+export function selectEntry(e : MouseEvent, socket : Socket, client : CLIENT.Instance) {
+  if (client.phase == CLIENT.Game.Phase.PLACE_TILE) {
+    let ndc = new THREE.Vector2(
+      (e.clientX / viewport.clientWidth) * 2 - 1.5,
+      -(e.clientY / viewport.clientHeight) * 2 + 1
+    );
   
-  let outerTile = game.labyrinth.tiles[game.labyrinth.dim][0];
-  let outerTileTarget = new THREE.Vector3(0, 0, 0);
-  game.raycaster.setFromCamera(ndc, game.camera.perspective);
-  game.raycaster.ray.intersectPlane(plane, outerTileTarget);
-  outerTileTarget.y += 0.15;
+    let outerTileTarget = new THREE.Vector3(0, 0, 0);
+    client.raycaster.setFromCamera(ndc, client.camera.perspective);
+    client.raycaster.ray.intersectPlane(floor, outerTileTarget);
+    outerTileTarget.y += 0.15;
   
-  if (game.phase == GamePhase.PLACE_TILE) {
-    for (let entryPoint of game.labyrinth.entryPoints) {
-      if (outerTileTarget.distanceTo(entryPoint) < 1)
-      {
-        outerTile.move(entryPoint.x, entryPoint.z);
-        game.labyrinth.moveTreasureIfExists(outerTile, entryPoint.x, entryPoint.z);
-        game.labyrinth.selectLane(entryPoint);
+    let labyrinth = client.labyrinth;
+    for (let entryPoint of labyrinth.entryPoints) {
+      if (outerTileTarget.distanceTo(entryPoint) < 1) {
+        labyrinth.selectedTile.x = clamp(entryPoint.x, 0, labyrinth.maxDim);
+        labyrinth.selectedTile.y = clamp(entryPoint.z, 0, labyrinth.maxDim);
+        
+        if (entryPoint.x == -1 || entryPoint.x == this.dim) {
+          if (entryPoint.x == -1) {
+            labyrinth.entryDirection = CLIENT.Game.Direction.LEFT;
+          } else if (entryPoint.x == this.dim) {
+            labyrinth.entryDirection = CLIENT.Game.Direction.RIGHT;
+          }
+        }
+        else if (entryPoint.z == -1 || entryPoint.z == this.dim) {
+          if (entryPoint.z == -1) {
+            labyrinth.entryDirection = CLIENT.Game.Direction.UP;
+          } else if (entryPoint.z == this.dim) {
+            labyrinth.entryDirection = CLIENT.Game.Direction.DOWN;
+          }
+        }
+        
+        socket.emit("client:onSelectEntry", entryPoint);
+        
         return;
       }
     }
   }
 }
   
+/*
 export function rotateTile(event : KeyboardEvent, client : GameClient) {
-  if (event.key == " " || event.key == 'r') 
+  if (client.phase == CLIENT.GamePhase.PLACE_TILE && event.key == " " || event.key == 'r') 
     client.labyrinth.rotateOuterTile();
 }
   
